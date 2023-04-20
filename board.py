@@ -1,9 +1,8 @@
 import chess
 import utils
+from evaluate import evaluate_material, find_move
 
 board = chess.Board()
-
-player_is_white = input("Play as white? (Y/n) ") == "Y"
 
 while True:
     san_move = input("Move: ")
@@ -11,6 +10,18 @@ while True:
     try:
         board.push_san(san_move)
         print(board)
+        print()
+
+        # Evaluate future positions
+
+        # Make the best move
+        generated_move = find_move(board)
+        board.push_san(generated_move)
+
+        print(board)
+        print("Move:", generated_move)
+        print("Material Balance:", evaluate_material(board))
+        print()
 
         if board.outcome():
             outcome = board.outcome()
