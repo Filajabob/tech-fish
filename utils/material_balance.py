@@ -6,6 +6,7 @@ import chess
 def material_balance(board):
     white = board.occupied_co[chess.WHITE]
     black = board.occupied_co[chess.BLACK]
+
     return (
         chess.popcount(white & board.pawns) - chess.popcount(black & board.pawns) +
         3 * (chess.popcount(white & board.knights) - chess.popcount(black & board.knights)) +

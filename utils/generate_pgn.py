@@ -1,12 +1,31 @@
+import chess
+
+
+def generate_san_move_list(board):
+    _board = chess.Board()
+    moves = board.move_stack
+
+    pgn = []
+
+    for move in moves:
+        pgn.append(_board.san(move) + ' ')
+        _board.push_san(str(move))
+
+    return pgn
 
 
 def generate_pgn(board):
+    """Returns unnumbered PGN"""
+
+    _board = chess.Board()
     moves = board.move_stack
-    san_moves = [str(move) for move in moves]
-    grouped_san_moves = list(zip(*[iter(san_moves)] * 2))
 
     pgn = ""
-    i = 1
 
-    for move in grouped_san_moves:
-        pgn += f"{i}. {move[0]} {move[1]} "
+    for move in moves:
+        pgn += _board.san(move) + ' '
+        _board.push_san(str(move))
+
+    return pgn
+
+
