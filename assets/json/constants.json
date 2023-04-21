@@ -1,6 +1,6 @@
 {
-  "starting_fen": "4r1k1/4q2p/8/8/8/8/R4PPP/6K1 w - - 0 1",
-  "max_depth": 8,
-  "time_limit": 1,
+  "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "max_depth": 10,
+  "time_limit": 2,
   "space_value": 0.07
 }

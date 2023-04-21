@@ -18,7 +18,7 @@ def generate_san_move_list(board):
 def generate_pgn(board):
     """Returns unnumbered PGN"""
 
-    _board = chess.Board(fen=board.fen())
+    _board = chess.Board(fen=utils.load_constants()["starting_fen"])
     moves = board.move_stack
 
     pgn = ""
