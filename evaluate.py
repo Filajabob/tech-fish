@@ -41,6 +41,7 @@ def evaluate_position(board):
         ]
 
         # Central Score = Central Pieces Owned by Us - Central Pieces Owned by Opponent
+        # TODO: Incentivize pieces closer to the center
         central_score = 0
         for square in central_squares:
             piece = board.piece_at(square)
@@ -67,16 +68,18 @@ def evaluate_position(board):
 
         # Penalize for repeating moves
         repeat_score = 0
+
         if len(board.move_stack) >= 3:
             prev_move = board.move_stack[-3]
             curr_move = board.move_stack[-1]
 
-            repeat_score = -1
+            repeat_score += constants["repeat_score"]
 
-        # Penalize for moving a piece twice in the opening
+        # # Penalize for moving a piece twice in the opening
+        # # TODO: Make this not so imbalanced
         opening_repeat_score = 0
         move_count = board.fullmove_number
-        if move_count < 10:
+        if move_count < 6:
             for move in board.move_stack:
                 if not board.piece_at(move.from_square):
                     continue
@@ -101,11 +104,9 @@ def evaluate_position(board):
             pawn_attack_score += constants["pawn_attack_score"]
 
         if board.turn:
-            return material_balance + king_safety + central_score + repeat_score + opening_repeat_score + \
-                   pawn_attack_score
+            return material_balance + king_safety + central_score + repeat_score + pawn_attack_score + opening_repeat_score
         else:
-            return material_balance - (king_safety + central_score + repeat_score + opening_repeat_score +
-                                       pawn_attack_score)
+            return material_balance - (king_safety + central_score + repeat_score + pawn_attack_score + opening_repeat_score)
 
 
 def minimax(board, depth, alpha, beta, is_maximizing):

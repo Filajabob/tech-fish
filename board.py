@@ -11,7 +11,11 @@ print(board)
 print()
 
 while True:
-    san_move = input("Move: ")
+    try:
+        san_move = input("Move: ")
+    except KeyboardInterrupt:
+        print(utils.generate_san_move_list(board))
+        break
 
     try:
         board.push_san(san_move)
@@ -54,4 +58,5 @@ while True:
         termination = str(outcome.termination).split('.')[1]
 
         print(f"{winner} won due to {termination}")
+        print(utils.generate_pgn(board))
         break
