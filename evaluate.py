@@ -22,36 +22,15 @@ def evaluate_position(board):
                 return 0
 
     else:
-        # Evaluate material
+        # Evaluate material (positive is good for white, negative good for black)
         material_balance = utils.material_balance(board)
 
-        # Evaluate "move freedom"
-        moves = list(board.legal_moves)
-        move_freedom = 0
-
-        for move in moves:
-            if move.drop in [2, 3, 4, 5]:
-                # A knight, bishop, or rook being able to move is probably a good thing, so we incentivize this
-                if board.turn: move_freedom += move.drop * 0.01
-                if not board.turn: move_freedom -= move.drop * 0.01
-
-                # We see what the opponent can do, if they also have freedom, we decentivize this
-                board.push(move)
-
-                rmoves = list(board.legal_moves)
-                for rmove in rmoves:
-                    if rmove.drop in [2, 3, 4, 5]:
-                        if board.turn: move_freedom -= move.drop * 0.25
-                        if not board.turn: move_freedom += move.drop * 0.25
-
-                board.pop()
 
         # Evaluate king safety
         king_safety = 0
 
         if board.is_check():
-            if board.turn: king_safety -= 0.5
-            if not board.turn: king_safety += 0.5
+            king_safety -= 0.025
 
         # Give a bonus for pieces being on a central square
         central_squares = [
@@ -64,10 +43,8 @@ def evaluate_position(board):
         central_score = 0
         for square in central_squares:
             piece = board.piece_at(square)
-            if piece is not None and piece.color:
+            if piece is not None:
                 central_score += 2
-            if piece is not None and not piece.color:
-                central_score -= 2
 
         # Penalize for repeating moves
         repeat_score = 0
@@ -75,12 +52,39 @@ def evaluate_position(board):
             prev_move = board.move_stack[-3]
             curr_move = board.move_stack[-1]
 
-            if prev_move.from_square == curr_move.to_square and board.turn:
-                penalty_score = -2.5
-            if prev_move.from_square == curr_move.to_square and not board.turn:
-                penalty_score = 2.5
+            penalty_score = -1
 
-        return material_balance + move_freedom + king_safety + central_score + repeat_score
+        # Penalize for moving a piece twice in the opening
+        opening_repeat_score = 0
+        move_count = board.fullmove_number
+        if move_count < 10:
+            for move in board.move_stack:
+                if not board.piece_at(move.from_square):
+                    continue
+                if board.piece_at(move.from_square).piece_type not in [chess.KING, chess.QUEEN]:
+                    if board.is_capture(move) or move.promotion or move.from_square in central_squares:
+                        continue
+                    if move_count < 4:
+                        if move_count == 2 and board.piece_at(move.from_square).color == chess.WHITE:
+                            continue
+                        if move_count == 3 and board.piece_at(move.from_square).color == chess.BLACK:
+                            continue
+                    opening_repeat_score -= 1.5
+
+        # Incentivize pawn attacks
+        pawn_attack_score = 0
+
+        # This means a pawn has taken something in the previous move, which is probably bad for us
+        if board.move_stack[-1].drop == 1 and \
+            chess.square_file(board.move_stack[-1].from_square) != chess.square_file(board.move_stack[-1].to_square):
+            pawn_attack_score -= 0.5
+
+        if board.turn:
+            return material_balance + king_safety + central_score + repeat_score + opening_repeat_score + \
+                   pawn_attack_score
+        else:
+            return material_balance - (king_safety + central_score + repeat_score + opening_repeat_score +
+                                       pawn_attack_score)
 
 
 def minimax(board, depth, alpha, beta, is_maximizing):
@@ -126,7 +130,7 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         return min_score, best_move
 
 
-def find_move(board, max_depth, time_limit, allow_book=True):
+def find_move(board, max_depth, time_limit, allow_book=True, engine_is_maximizing=False):
     # Check if we are in a book position
     opening_pgns = utils.load_openings()
     combined = '\t'.join(opening_pgns)
@@ -159,7 +163,7 @@ def find_move(board, max_depth, time_limit, allow_book=True):
     for depth in range(1, max_depth + 1):
         alpha = float('-inf')
         beta = float('inf')
-        score, best_move = minimax(board, depth, alpha, beta, True)
+        score, best_move = minimax(board, depth, alpha, beta, engine_is_maximizing)
 
         if time.time() - start_time > time_limit:
             break

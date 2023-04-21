@@ -22,6 +22,9 @@ while True:
     except chess.InvalidMoveError:
         print("Illegal move!")
         continue
+    except chess.AmbiguousMoveError:
+        print("Ambiguous move!")
+        continue
 
     print(board)
     print()
