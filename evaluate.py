@@ -5,10 +5,11 @@ import utils
 import re
 import time
 
+constants = utils.load_constants()
+
 
 def evaluate_position(board):
     """Evaluates the current material of a singular position."""
-
     # If the game has ended, figure out who is winning
     if board.outcome():
         outcome = board.outcome()
@@ -25,12 +26,11 @@ def evaluate_position(board):
         # Evaluate material (positive is good for white, negative good for black)
         material_balance = utils.material_balance(board)
 
-
         # Evaluate king safety
         king_safety = 0
 
         if board.is_check():
-            king_safety -= 0.025
+            king_safety -= constants["king_safety"]
 
         # Give a bonus for pieces being on a central square
         central_squares = [
@@ -40,11 +40,30 @@ def evaluate_position(board):
             chess.C6, chess.D6, chess.E6, chess.F6,
         ]
 
+        # Central Score = Central Pieces Owned by Us - Central Pieces Owned by Opponent
         central_score = 0
         for square in central_squares:
             piece = board.piece_at(square)
             if piece is not None:
-                central_score += 2
+                if piece.color == board.turn:
+                    if piece.piece_type == 1:
+                        # We really like pawns in the center
+                        central_score += constants["central_pawn_score"]
+
+                    elif piece.piece_type in [5, 6]:
+                        # We don't want important pieces in the center
+                        # TODO: Allow important pieces in the center later in the game
+                        central_score += constants["central_important_piece_score"]
+
+                    central_score += constants["central_score"]
+                elif piece.color != board.turn:
+                    if piece.piece_type == 1:
+                        central_score -= constants["central_pawn_score"]
+
+                    elif piece.piece_type in [5, 6]:
+                        central_score -= constants["central_important_piece_score"]
+
+                    central_score -= constants["central_score"]
 
         # Penalize for repeating moves
         repeat_score = 0
@@ -52,7 +71,7 @@ def evaluate_position(board):
             prev_move = board.move_stack[-3]
             curr_move = board.move_stack[-1]
 
-            penalty_score = -1
+            repeat_score = -1
 
         # Penalize for moving a piece twice in the opening
         opening_repeat_score = 0
@@ -69,15 +88,17 @@ def evaluate_position(board):
                             continue
                         if move_count == 3 and board.piece_at(move.from_square).color == chess.BLACK:
                             continue
-                    opening_repeat_score -= 1.5
+
+                    opening_repeat_score += constants["opening_repeat_score"]
 
         # Incentivize pawn attacks
         pawn_attack_score = 0
 
         # This means a pawn has taken something in the previous move, which is probably bad for us
         if board.move_stack[-1].drop == 1 and \
-            chess.square_file(board.move_stack[-1].from_square) != chess.square_file(board.move_stack[-1].to_square):
-            pawn_attack_score -= 0.5
+                chess.square_file(board.move_stack[-1].from_square) != chess.square_file(
+                board.move_stack[-1].to_square):
+            pawn_attack_score += constants["pawn_attack_score"]
 
         if board.turn:
             return material_balance + king_safety + central_score + repeat_score + opening_repeat_score + \
