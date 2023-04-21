@@ -1,14 +1,21 @@
+import time
 import chess
 import utils
-from evaluate import evaluate_material, find_move
+from evaluate import evaluate_position, find_move
+from multiprocessing import Pool
 
-board = chess.Board()
+board = chess.Board(fen=utils.load_constants()["starting_fen"])
+# TODO: FIX DISPLAY ISSUES: display_board = display.start()
+
+print(board)
+print()
 
 while True:
     san_move = input("Move: ")
 
     try:
         board.push_san(san_move)
+
     except chess.IllegalMoveError:
         print("Illegal move!")
         continue
@@ -19,14 +26,18 @@ while True:
     # Evaluate future positions
 
     # Make the best move
-    eval = find_move(board)
+    start_time = time.time()
+    eval = find_move(board, utils.load_constants()["max_depth"], utils.load_constants()["time_limit"])
+    time_spent = round(time.time() - start_time, 2)
+
     board.push_san(eval["move"])
 
     print(board)
     print()
     print("Move:", utils.generate_san_move_list(board)[-1])
-    print("Material Balance:", evaluate_material(board))
     print("Eval:", str(eval["eval"]))
+    print("Depth:", eval["depth"])
+    print("Time Spent:", time_spent)
     print()
 
     if board.outcome():
@@ -38,5 +49,3 @@ while True:
 
         print(f"{winner} won due to {termination}")
         break
-
-
