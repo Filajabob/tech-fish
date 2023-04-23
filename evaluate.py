@@ -11,9 +11,8 @@ constants = utils.load_constants()
 def evaluate_position(board):
     """Evaluates the current material of a singular position."""
     # If the game has ended, figure out who is winning
-    if board.outcome():
-        outcome = board.outcome()
-
+    outcome = board.outcome()
+    if outcome:
         if outcome.result() in ["1-0", "0-1", "1/2-1/2"]:
             if outcome.result() == "1-0":
                 return float("inf")
@@ -153,6 +152,17 @@ def minimax(board, depth, alpha, beta, is_maximizing):
 
 
 def find_move(board, max_depth, time_limit, allow_book=True, engine_is_maximizing=False):
+    # Check if we are in an endgame
+    if len(board.piece_map()) <= 7:
+        tablebase_result = utils.evaluate_endgame(board)
+
+        return {
+            "eval": tablebase_result["eval"],
+            "move": tablebase_result["move"],
+            "depth": None
+        }
+
+
     # Check if we are in a book position
     opening_pgns = utils.load_openings()
     combined = '\t'.join(opening_pgns)
@@ -187,7 +197,8 @@ def find_move(board, max_depth, time_limit, allow_book=True, engine_is_maximizin
         beta = float('inf')
         score, best_move = minimax(board, depth, alpha, beta, engine_is_maximizing)
 
-        if time.time() - start_time > time_limit:
+        # Don't break if a move wasn't found yet
+        if time.time() - start_time > time_limit and best_move:
             break
 
     return {
