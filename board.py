@@ -40,6 +40,7 @@ def end_game(board):
 
     print(f"{winner} won due to {termination}")
     print(utils.generate_pgn(board))
+    print(board.fen())
 
 while True:
     if white:
@@ -47,6 +48,7 @@ while True:
             san_move = input("Move: ")
         except KeyboardInterrupt:
             print(utils.generate_pgn(board))
+            print(board.fen())
             break
 
         try:

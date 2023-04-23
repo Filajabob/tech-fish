@@ -8,22 +8,31 @@ def evaluate_endgame(board):
         raise ValueError("Position has more than 7 pieces")
 
     r = requests.get(f"http://tablebase.lichess.ovh/standard?fen={board.fen().replace(' ', '_')}")
-    json_r = json.loads(r.content)
 
-    move = json_r["moves"][0]  # Load the best move
+    try:
+        tablebase_eval = json.loads(r.content)
+    except json.decoder.JSONDecodeError:
+        raise Exception(r.content)
 
-    # TODO: Make eval proper
+    move = tablebase_eval["moves"][0]["san"]
 
-    if move["dtm"]:
-        eval = f"M{(-move['dtm']) - 1}"
-    if move["checkmate"]:
-        eval = "M0"
+    if tablebase_eval["dtm"]:
+        eval = f"M{tablebase_eval['dtm'] // 2}"
     else:
-        eval = f"DTZ{move['dtz']}"
+        if tablebase_eval["category"] == "draw":
+            eval = "Draw"
+        else:
+
+            if board.turn:
+                ref_color = "white"
+            else:
+                ref_color = "black"
+
+            eval = f"{tablebase_eval['category'].title()} for {ref_color}"
 
 
     return {
-        "move": move["san"],
+        "move": move,
         "eval": eval
     }
 
