@@ -9,6 +9,7 @@ board = chess.Board(fen=utils.load_constants()["starting_fen"])
 
 white = input("Color (W/b) ") == "W"
 
+
 def print_board(board, is_white):
     if is_white:
         print(board)
@@ -16,9 +17,11 @@ def print_board(board, is_white):
         vertical_flipped = board.transform(chess.flip_vertical)
         print(vertical_flipped.transform(chess.flip_horizontal))
 
-def find_and_make_move(board, maximizing=True):
+
+def find_and_make_move(board, maximizing=True, allow_book=True):
     start_time = time.time()
-    eval = find_move(board, utils.load_constants()["max_depth"], utils.load_constants()["time_limit"], maximizing)
+    eval = find_move(board, utils.load_constants()["max_depth"], utils.load_constants()["time_limit"], allow_book=allow_book,
+                     engine_is_maximizing=maximizing)
     time_spent = round(time.time() - start_time, 2)
 
     board.push_san(eval["move"])
@@ -31,6 +34,7 @@ def find_and_make_move(board, maximizing=True):
     print("Time Spent:", time_spent)
     print()
 
+
 def end_game(board):
     outcome = board.outcome()
     if outcome.winner == True: winner = "White"
@@ -41,6 +45,7 @@ def end_game(board):
     print(f"{winner} won due to {termination}")
     print(utils.generate_pgn(board))
     print(board.fen())
+
 
 while True:
     if white:

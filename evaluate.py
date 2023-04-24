@@ -25,12 +25,6 @@ def evaluate_position(board):
         # Evaluate material (positive is good for white, negative good for black)
         material_balance = utils.material_balance(board)
 
-        # Evaluate king safety
-        king_safety = 0
-
-        if board.is_check():
-            king_safety -= constants["king_safety"]
-
         # Give a bonus for pieces being on a central square
         central_squares = [
             chess.C3, chess.D3, chess.E3, chess.F3,
@@ -103,14 +97,16 @@ def evaluate_position(board):
             pawn_attack_score += constants["pawn_attack_score"]
 
         if board.turn:
-            return material_balance + king_safety + central_score + repeat_score + pawn_attack_score + opening_repeat_score
+            return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score
         else:
-            return material_balance - (king_safety + central_score + repeat_score + pawn_attack_score + opening_repeat_score)
+            return material_balance - (central_score + repeat_score + pawn_attack_score + opening_repeat_score)
 
 
 def minimax(board, depth, alpha, beta, is_maximizing):
     if depth == 0:
         return evaluate_position(board), None
+
+    scores = []
 
     if is_maximizing:
         max_score = float('-inf')
@@ -125,6 +121,7 @@ def minimax(board, depth, alpha, beta, is_maximizing):
                 best_move = move
 
             alpha = max(alpha, max_score)
+
             if alpha >= beta:
                 break
 
@@ -151,7 +148,7 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         return min_score, best_move
 
 
-def find_move(board, max_depth, time_limit, allow_book=True, engine_is_maximizing=False):
+def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False):
     # Check if we are in an endgame
     if len(board.piece_map()) <= 7:
         tablebase_result = utils.evaluate_endgame(board)
@@ -178,10 +175,11 @@ def find_move(board, max_depth, time_limit, allow_book=True, engine_is_maximizin
                 continuations.append(opening)
 
         if len(continuations) == 0:
-            return find_move(board, max_depth, time_limit, False)
+            return find_move(board, max_depth, time_limit, allow_book=False, engine_is_maximizing=engine_is_maximizing)
 
         continuation = random.choice(continuations)
         continuation = re.sub(f'^{board_pgn}', '', continuation)
+
 
         return {
             "move": continuation.split(' ')[0],
