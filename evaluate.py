@@ -4,6 +4,7 @@ import random
 import utils
 import re
 import time
+from errors import *
 
 constants = utils.load_constants()
 
@@ -151,14 +152,16 @@ def minimax(board, depth, alpha, beta, is_maximizing):
 def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False):
     # Check if we are in an endgame
     if len(board.piece_map()) <= 7:
-        tablebase_result = utils.evaluate_endgame(board)
+        try:
+            tablebase_result = utils.evaluate_endgame(board)
 
-        return {
-            "eval": tablebase_result["eval"],
-            "move": tablebase_result["move"],
-            "depth": None
-        }
-
+            return {
+                "eval": tablebase_result["eval"],
+                "move": tablebase_result["move"],
+                "depth": None
+            }
+        except TablebaseLookupError:
+            print("WARNING: Cannot connect to lichess.ovh for tablebase lookup. Ensure internet connection is stable.")
 
     # Check if we are in a book position
     opening_pgns = utils.load_openings()

@@ -1,5 +1,6 @@
 import requests
 import json
+from errors import *
 
 def evaluate_endgame(board):
     """Evaluates and returns a move for a position when there are 7 pieces or less."""
@@ -8,6 +9,10 @@ def evaluate_endgame(board):
         raise ValueError("Position has more than 7 pieces")
 
     r = requests.get(f"http://tablebase.lichess.ovh/standard?fen={board.fen().replace(' ', '_')}")
+
+    if not r.ok:
+        # For some reason, tablebase lookup didn't work
+        raise TablebaseLookupError(f"tablebase.lichess.ovh returned a status of {r.status_code}; lookup failed")
 
     try:
         tablebase_eval = json.loads(r.content)

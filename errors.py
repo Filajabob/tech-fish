@@ -1,0 +1,2 @@
+class TablebaseLookupError(Exception):
+    pass
