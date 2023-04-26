@@ -5,8 +5,10 @@ import utils
 import re
 import time
 from errors import *
+import psutil
 
 constants = utils.load_constants()
+zobrist_hash = utils.ZobristHash()
 
 
 def evaluate_position(board):
@@ -45,10 +47,10 @@ def evaluate_position(board):
                         # We really like pawns in the center
                         central_score += constants["central_pawn_score"]
 
-                    elif piece.piece_type in [5, 6]:
+                    #elif piece.piece_type in [5, 6]:
                         # We don't want important pieces in the center
                         # TODO: Allow important pieces in the center later in the game
-                        central_score += constants["central_important_piece_score"]
+                    #    central_score += constants["central_important_piece_score"]
 
                     central_score += constants["central_score"]
                 elif piece.color != board.turn:
@@ -105,18 +107,53 @@ def evaluate_position(board):
             pawn_attack_score += constants["pawn_attack_score"]
 
         if board.turn:
-            return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score + king_safety_score
+            return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score + \
+                   king_safety_score
         else:
-            return material_balance - (central_score + repeat_score + pawn_attack_score + opening_repeat_score + king_safety_score)
+            return material_balance - (central_score + repeat_score + pawn_attack_score + opening_repeat_score +
+                                       king_safety_score)
+
+
+transposition_table = {}
 
 
 def minimax(board, depth, alpha, beta, is_maximizing):
+    """
+    A minimax evaluation function, which uses alpha-beta pruning and Zobrist hashing.
+    :param board:
+    :param depth:
+    :param alpha:
+    :param beta:
+    :param is_maximizing:
+    :return:
+    """
+
+    # Calculate this board's Zobrist hash
+    hash_key = zobrist_hash(board)
+
+    # If this position is in the transposition table, save some time and load that evaluation
+    if hash_key in transposition_table:
+        return transposition_table[hash_key]
+
+    # If we reached the bottom of the tree, evaluate the position
     if depth == 0:
-        return evaluate_position(board), None
+        return {
+            "score": evaluate_position(board),
+            "best_move": None,
+            "depth": depth
+        }
+
+    # Check if there is an entry in the transposition table for this hash
+    if hash_key in transposition_table:
+        entry = transposition_table[hash_key]
+        if entry['depth'] >= depth:
+            # Use the stored score as the current score
+            return entry['score']
 
     scores = []
 
     if is_maximizing:
+        # Find best move for the maximizing player (white)
         max_score = float('-inf')
         best_move = None
         for move in board.legal_moves:
@@ -133,15 +170,26 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             if alpha >= beta:
                 break
 
-        return max_score, best_move
+        transposition_table[hash_key] = {
+            'score': max_score,
+            'best_move': best_move,
+            'depth': depth
+        }
+
+        return {
+            'score': max_score,
+            'best_move': best_move,
+            'depth': depth
+        }
 
     else:
+        # Find best move for minimizing player (black)
         min_score = float('inf')
         best_move = None
 
         for move in board.legal_moves:
             board.push(move)
-            score = minimax(board, depth - 1, alpha, beta, True)[0]
+            score = minimax(board, depth - 1, alpha, beta, True)["score"]
             board.pop()
 
             if score < min_score:
@@ -153,7 +201,17 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             if beta <= alpha:
                 break
 
-        return min_score, best_move
+        transposition_table[hash_key] = {
+            'score': min_score,
+            'best_move': best_move,
+            'depth': depth
+        }
+
+        return {
+            'score': min_score,
+            'best_move': best_move,
+            'depth': depth
+        }
 
 
 def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False):
@@ -167,6 +225,7 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
                 "move": tablebase_result["move"],
                 "depth": None
             }
+
         except TablebaseLookupError:
             print("WARNING: Cannot connect to lichess.ovh for tablebase lookup. Ensure internet connection is stable.")
 
@@ -190,7 +249,6 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         continuation = random.choice(continuations)
         continuation = re.sub(f'^{board_pgn}', '', continuation)
 
-
         return {
             "move": continuation.split(' ')[0],
             "eval": "Book",
@@ -203,14 +261,24 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
     for depth in range(1, max_depth + 1):
         alpha = float('-inf')
         beta = float('inf')
-        score, best_move = minimax(board, depth, alpha, beta, engine_is_maximizing)
+        search = minimax(board, depth, alpha, beta, engine_is_maximizing)
 
         # Don't break if a move wasn't found yet
         if time.time() - start_time > time_limit and best_move:
             break
 
+    # Check if the transposition cache is too full, clear if necessary
+    total_memory = psutil.virtual_memory().total
+    python_memory = psutil.Process().memory_info().rss
+    available_memory = total_memory - python_memory
+
+    if python_memory / total_memory > utils.load_constants()["maximum_python_ram_percentage"]:
+        # Too much RAM used, lets clear the cache
+        global transposition_table
+        transposition_table = {}
+
     return {
-        "move": str(best_move),
-        "eval": score,
+        "move": str(search["best_move"]),
+        "eval": search["score"],
         "depth": depth
     }
