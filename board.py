@@ -8,10 +8,12 @@ board = chess.Board(fen=utils.load_constants()["starting_fen"])
 # TODO: FIX DISPLAY ISSUES: display_board = display.start()
 
 white = input("Color (W/b) ") == "W"
+inverse = input("Inverse board? (Y/n) ") == "Y"
 
 
 def print_board(board, is_white):
-    if is_white:
+    if is_white or (not is_white and inverse):
+        # If white, or playing as black (but inverse is True)
         print(board)
     else:
         vertical_flipped = board.transform(chess.flip_vertical)

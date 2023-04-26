@@ -60,6 +60,13 @@ def evaluate_position(board):
 
                     central_score -= constants["central_score"]
 
+        king_safety_score = 0
+
+        # If there are many possible checks on the next move, the other side doesn't have good king safety
+        for legal_move in board.legal_moves:
+            if board.gives_check(legal_move):
+                king_safety_score -= constants["king_safety"]
+
         # Penalize for repeating moves
         repeat_score = 0
 
@@ -98,9 +105,9 @@ def evaluate_position(board):
             pawn_attack_score += constants["pawn_attack_score"]
 
         if board.turn:
-            return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score
+            return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score + king_safety_score
         else:
-            return material_balance - (central_score + repeat_score + pawn_attack_score + opening_repeat_score)
+            return material_balance - (central_score + repeat_score + pawn_attack_score + opening_repeat_score + king_safety_score)
 
 
 def minimax(board, depth, alpha, beta, is_maximizing):

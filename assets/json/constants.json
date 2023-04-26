@@ -3,11 +3,11 @@
   "max_depth": 5,
   "time_limit": 2,
   "space_value": 0.07,
-  "king_safety": -0.025,
-  "central_score": 0.35,
+  "king_safety": -0.017,
+  "central_score": 0.3,
   "central_pawn_score": 0.5,
   "central_important_piece_score": -0.3,
   "repeat_score": -1,
   "opening_repeat_score": -0.7,
-  "pawn_attack_score": -0.5
+  "pawn_attack_score": -0.3
 }
