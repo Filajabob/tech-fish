@@ -3,26 +3,92 @@ import random
 
 
 class ZobristHash:
-    def __init__(self):
-        self.pieces = {}
+    def __init__(self, board):
+        self.zobrist_array = {}
+
+        for piece in chess.PIECE_TYPES:
+            self.zobrist_array[piece] = {}
 
         for piece in chess.PIECE_TYPES:
             for square in chess.SQUARES:
-                self.pieces[(piece, square)] = random.getrandbits(64)
+                self.zobrist_array[piece][square] = random.getrandbits(64)
 
         self.en_passant = [random.getrandbits(64) for _ in range(8)]
         self.turn = random.getrandbits(64)
 
-    def __call__(self, board: chess.Board) -> int:
-        h = 0
+        self.current_hash = 0
 
         for square, piece in board.piece_map().items():
-            h ^= self.pieces[(piece.piece_type, square)]
+            self.current_hash ^= self.zobrist_array[piece.piece_type][square]
 
         if board.ep_square is not None:
-            h ^= self.en_passant[chess.square_file(board.ep_square)]
+            self.current_hash ^= self.en_passant[chess.square_file(board.ep_square)]
 
-        if board.turn == chess.BLACK:
-            h ^= self.turn
+        self.zobrist_array[-1] = random.getrandbits(64)
 
-        return h
+    def move(self, move, board):
+        piece = board.piece_type_at(move.from_square)
+
+        # XOR out the piece from its origin square
+        self.current_hash ^= self.zobrist_array[piece][move.from_square]
+
+        if board.is_capture(move):
+            if move.is_en_passant():
+                # XOR out the en-passanted pawn
+                if self.turn == chess.BLACK:
+                    self.current_hash ^= self.zobrist_array[1][move.to_square - 8]
+                else:
+                    self.current_hash ^= self.zobrist_array[1][move.to_square + 8]
+
+                # XOR in the pawn to its new square
+                self.zobrist_hash ^= self.zobrist_array[piece][move.to_square]
+
+            else:
+                board.pop()
+                captured_piece = self.piece_type_at(move.to_square)
+                board.push(move)
+
+                # XOR out the captured piece, if any
+                self.zobrist_hash ^= self.zobrist_array[captured_piece][move.to_square]
+        if move.promotion:
+            # XOR out the pawn that promoted, if any
+            self.zobrist_hash ^= self.zobrist_array[piece][move.to_square]
+
+            # XOR in the newly promoted piece
+            self.zobrist_hash ^= self.zobrist_array[move.promotion][move.to_square]
+        else:
+            # Nothing special, XOR in the piece to its new square
+            self.zobrist_hash ^= self.zobrist_array[piece][move.to_square]
+
+        # Castling logic
+        if move.is_castling():
+            if move.to_square == chess.G1:
+                self.remove_piece_at(chess.H1)
+                self.place_piece_at(chess.ROOK, chess.F1)
+                self.zobrist_hash ^= self.zobrist_array[chess.ROOK][chess.H1]
+                self.zobrist_hash ^= self.zobrist_array[chess.ROOK][chess.F1]
+            elif move.to_square == chess.C1:
+                self.remove_piece_at(chess.A1)
+                self.place_piece_at(chess.ROOK, chess.D1)
+                self.zobrist_hash ^= self.zobrist_array[chess.ROOK][chess.A1]
+                self.zobrist_hash ^= self.zobrist_array[chess.ROOK][chess.D1]
+            elif move.to_square == chess.G8:
+                self.remove_piece_at(chess.H8)
+                self.place_piece_at(chess.ROOK, chess.F8)
+                self.zobrist_hash ^= self.zobrist_array[chess.ROOK][chess.H8]
+                self.zobrist_hash ^= self.zobrist_array[chess.ROOK][chess.F8]
+            elif move.to_square == chess.C8:
+                self.remove_piece_at(chess.A8)
+                self.place_piece_at(chess.ROOK, chess.D8)
+                self.zobrist_hash ^= self.zobrist_array[chess.ROOK][chess.A8]
+                self.zobrist_hash ^= self.zobrist_array[chess.ROOK][chess.D8]
+
+        self.zobrist_hash ^= ZOBRIST_KEYS[-1]
+
+        return self.zobrist_hash
+
+    def pop(self, move, board):
+        return self.move(move, board)
+
+
+

@@ -8,10 +8,10 @@ from errors import *
 import psutil
 
 constants = utils.load_constants()
-zobrist_hash = utils.ZobristHash()
-positions_evaluated = 0
+zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 
 # TODO: Fix Zobrist hashing taking too long, or remove it
+
 
 def evaluate_position(board):
     """Evaluates the current material of a singular position."""
@@ -127,9 +127,6 @@ def evaluate_position(board):
                 board.move_stack[-1].to_square):
             pawn_attack_score -= constants["pawn_attack_score"]
 
-        global positions_evaluated
-        positions_evaluated += 1
-
         if board.turn:
             return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score + \
                    king_safety_score
@@ -152,8 +149,7 @@ def minimax(board, depth, alpha, beta, is_maximizing):
     :return:
     """
 
-    # Calculate this board's Zobrist hash
-    hash_key = zobrist_hash(board)
+    hash_key = zobrist_hash.current_hash
 
     # Check if there is an entry in the transposition table for this hash
     if hash_key in transposition_table:
@@ -188,8 +184,12 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         max_score = float('-inf')
         best_move = None
         for move in sorted(board.legal_moves, key=lambda move: utils.capture_value(board, move), reverse=True):
+            zobrist_hash.move(move, board)
             board.push(move)
+
             score = minimax(board, depth - 1, alpha, beta, False)["score"]
+
+            zobrist_hash.pop(move, board)
             board.pop()
 
             if score > max_score:
@@ -220,8 +220,12 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         best_move = None
 
         for move in sorted(board.legal_moves, key=lambda move: utils.capture_value(board, move)):
+            zobrist_hash.move(move, board)
             board.push(move)
+
             score = minimax(board, depth - 1, alpha, beta, True)["score"]
+
+            zobrist_hash.pop(move, board)
             board.pop()
 
             if score < min_score:
