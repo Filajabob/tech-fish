@@ -183,14 +183,14 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         # Find best move for the maximizing player (white)
         max_score = float('-inf')
         best_move = None
-        for move in sorted(board.legal_moves, key=lambda move: utils.capture_value(board, move), reverse=True):
+        for move in utils.order_moves(board, board.legal_moves):
             zobrist_hash.move(move, board)
             board.push(move)
 
             score = minimax(board, depth - 1, alpha, beta, False)["score"]
 
-            zobrist_hash.pop(move, board)
             board.pop()
+            zobrist_hash.pop(move, board)
 
             if score > max_score:
                 max_score = score
@@ -219,14 +219,14 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         min_score = float('inf')
         best_move = None
 
-        for move in sorted(board.legal_moves, key=lambda move: utils.capture_value(board, move)):
-            zobrist_hash.move(move, board)
+        for move in utils.order_moves(board, board.legal_moves):
+            zobrist_hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
             score = minimax(board, depth - 1, alpha, beta, True)["score"]
 
-            zobrist_hash.pop(move, board)
             board.pop()
+            zobrist_hash.pop(move, board)  # Make sure the Zobrist Hash pop happens after the pop
 
             if score < min_score:
                 min_score = score
