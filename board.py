@@ -31,7 +31,12 @@ def find_and_make_move(board, maximizing=True, allow_book=True):
     print_board(board, white)
     print()
     print("Move:", utils.generate_san_move_list(board)[-1])
-    print("Eval:", str(eval["eval"]))
+
+    if isinstance(eval["eval"], int):
+        print("Eval:", round(eval["eval"], 2))
+    else:
+        print("Eval", str(eval["eval"]))
+
     print("Depth:", eval["depth"])
     print("Time Spent:", time_spent)
     print()

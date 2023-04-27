@@ -29,28 +29,28 @@ def evaluate_position(board):
         material_balance = utils.material_balance(board)
 
         # Give a bonus for pieces being on a central square
-        central_squares = [
+        outer_central_squares = [
             chess.C3, chess.D3, chess.E3, chess.F3,
-            chess.C4, chess.D4, chess.E4, chess.F4,
-            chess.C5, chess.D5, chess.E5, chess.F5,
+            chess.C4,                     chess.F4,
+            chess.C5,                     chess.F5,
             chess.C6, chess.D6, chess.E6, chess.F6,
+        ]
+
+        very_central_squares = [
+            chess.D4, chess.E4,
+            chess.D5, chess.E5,
         ]
 
         # Central Score = Central Pieces Owned by Us - Central Pieces Owned by Opponent
         # TODO: Incentivize pieces closer to the center
         central_score = 0
-        for square in central_squares:
+        for square in outer_central_squares:
             piece = board.piece_at(square)
             if piece is not None:
                 if piece.color == board.turn:
                     if piece.piece_type == 1:
                         # We really like pawns in the center
                         central_score += constants["central_pawn_score"]
-
-                    #elif piece.piece_type in [5, 6]:
-                        # We don't want important pieces in the center
-                        # TODO: Allow important pieces in the center later in the game
-                    #    central_score += constants["central_important_piece_score"]
 
                     central_score += constants["central_score"]
                 elif piece.color != board.turn:
@@ -61,6 +61,24 @@ def evaluate_position(board):
                         central_score -= constants["central_important_piece_score"]
 
                     central_score -= constants["central_score"]
+
+        for square in very_central_squares:
+            piece = board.piece_at(square)
+            if piece is not None:
+                if piece.color == board.turn:
+                    if piece.piece_type == 1:
+                        # We really like pawns in the center
+                        central_score += constants["central_pawn_score"] * 1.5
+
+                    central_score += constants["central_score"]
+                elif piece.color != board.turn:
+                    if piece.piece_type == 1:
+                        central_score -= constants["central_pawn_score"]
+
+                    elif piece.piece_type in [5, 6]:
+                        central_score -= constants["central_important_piece_score"]
+
+                    central_score -= constants["central_score"] * 1.5
 
         king_safety_score = 0
 
@@ -82,12 +100,13 @@ def evaluate_position(board):
         # # TODO: Make this not so imbalanced
         opening_repeat_score = 0
         move_count = board.fullmove_number
-        if move_count < 6:
+        if move_count < 10:
             for move in board.move_stack:
                 if not board.piece_at(move.from_square):
                     continue
                 if board.piece_at(move.from_square).piece_type not in [chess.KING, chess.QUEEN]:
-                    if board.is_capture(move) or move.promotion or move.from_square in central_squares:
+                    if board.is_capture(move) or move.promotion or move.from_square in outer_central_squares + \
+                            very_central_squares:
                         continue
                     if move_count < 4:
                         if move_count == 2 and board.piece_at(move.from_square).color == chess.WHITE:
@@ -104,7 +123,7 @@ def evaluate_position(board):
         if board.move_stack[-1].drop == 1 and \
                 chess.square_file(board.move_stack[-1].from_square) != chess.square_file(
                 board.move_stack[-1].to_square):
-            pawn_attack_score += constants["pawn_attack_score"]
+            pawn_attack_score -= constants["pawn_attack_score"]
 
         if board.turn:
             return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score + \
@@ -148,7 +167,7 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         entry = transposition_table[hash_key]
         if entry['depth'] >= depth:
             # Use the stored score as the current score
-            return entry['score']
+            return entry
 
     scores = []
 
@@ -158,7 +177,7 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         best_move = None
         for move in board.legal_moves:
             board.push(move)
-            score = minimax(board, depth - 1, alpha, beta, False)[0]
+            score = minimax(board, depth - 1, alpha, beta, False)["score"]
             board.pop()
 
             if score > max_score:
