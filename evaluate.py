@@ -140,7 +140,7 @@ transposition_table = {}
 
 def minimax(board, depth, alpha, beta, is_maximizing):
     """
-    A minimax evaluation function, which uses alpha-beta pruning and Zobrist hashing.
+    A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing.
     :param board:
     :param depth:
     :param alpha:
@@ -154,15 +154,8 @@ def minimax(board, depth, alpha, beta, is_maximizing):
     # Check if there is an entry in the transposition table for this hash
     if hash_key in transposition_table:
         entry = transposition_table[hash_key]
-        if entry['depth'] >= depth:
-            if entry['type'] == 'exact':
-                return entry
-            elif entry['type'] == 'lowerbound':
-                alpha = max(alpha, entry['score'])
-            elif entry['type'] == 'upperbound':
-                beta = min(beta, entry['score'])
-            if alpha >= beta:
-                return entry
+        if depth - entry["depth"] <= constants["maximum_transposition_depth_diff"]:
+            return transposition_table[hash_key]
 
     # If we reached the bottom of the tree, evaluate the position
     if depth == 0:
@@ -170,13 +163,17 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             "score": evaluate_position(board),
             "best_move": None,
             "depth": depth,
-            "type": "exact"
+            "type": "exact",
+            'alpha': alpha,
+            'beta': beta
         }
 
         return {
             "score": evaluate_position(board),
             "best_move": None,
-            "depth": depth
+            "depth": depth,
+            'alpha': alpha,
+            'beta': beta
         }
 
     if is_maximizing:
@@ -205,13 +202,17 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             'score': max_score,
             'best_move': best_move,
             'depth': depth,
-            "type": "lowerbound"
+            "type": "lowerbound",
+            'alpha': alpha,
+            'beta': beta
         }
 
         return {
             'score': max_score,
             'best_move': best_move,
-            'depth': depth
+            'depth': depth,
+            'alpha': alpha,
+            'beta': beta
         }
 
     else:
@@ -241,14 +242,17 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             'score': min_score,
             'best_move': best_move,
             'depth': depth,
-            "type": "upperbound"
+            "type": "upperbound",
+            'alpha': alpha,
+            'beta': beta
         }
-
 
         return {
             'score': min_score,
             'best_move': best_move,
-            'depth': depth
+            'depth': depth,
+            'alpha': alpha,
+            'beta': beta
         }
 
 
@@ -261,7 +265,9 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
             return {
                 "eval": tablebase_result["eval"],
                 "move": tablebase_result["move"],
-                "depth": None
+                "depth": None,
+                'alpha': None,
+                'beta': None
             }
 
         except TablebaseLookupError:
@@ -290,16 +296,22 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         return {
             "move": continuation.split(' ')[0],
             "eval": "Book",
-            "depth": None
+            "depth": None,
+            'alpha': None,
+            'beta': None
         }
 
     start_time = time.time()
     best_move = None
 
+    alpha = float('-inf')
+    beta = float('inf')
+
     for depth in range(1, max_depth + 1):
-        alpha = float('-inf')
-        beta = float('inf')
         search = minimax(board, depth, alpha, beta, engine_is_maximizing)
+
+        alpha = search["alpha"]
+        beta = search["beta"]
 
         # Don't break if a move wasn't found yet
         if time.time() - start_time > time_limit and best_move:
@@ -313,6 +325,8 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         # Too much RAM used, let's clear the cache
         global transposition_table
         transposition_table = {}
+
+    zobrist_hash.move(board.parse_san(str(search["best_move"])), board)
 
     return {
         "move": str(search["best_move"]),

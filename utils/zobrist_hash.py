@@ -62,23 +62,15 @@ class ZobristHash:
         # Castling logic
         if board.is_castling(move):
             if move.to_square == chess.G1:
-                self.remove_piece_at(chess.H1)
-                self.place_piece_at(chess.ROOK, chess.F1)
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.H1]
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.F1]
             elif move.to_square == chess.C1:
-                self.remove_piece_at(chess.A1)
-                self.place_piece_at(chess.ROOK, chess.D1)
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.A1]
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.D1]
             elif move.to_square == chess.G8:
-                self.remove_piece_at(chess.H8)
-                self.place_piece_at(chess.ROOK, chess.F8)
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.H8]
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.F8]
             elif move.to_square == chess.C8:
-                self.remove_piece_at(chess.A8)
-                self.place_piece_at(chess.ROOK, chess.D8)
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.A8]
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.D8]
 
