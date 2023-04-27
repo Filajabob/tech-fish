@@ -9,7 +9,9 @@ import psutil
 
 constants = utils.load_constants()
 zobrist_hash = utils.ZobristHash()
+positions_evaluated = 0
 
+# TODO: Fix Zobrist hashing taking too long, or remove it
 
 def evaluate_position(board):
     """Evaluates the current material of a singular position."""
@@ -125,6 +127,9 @@ def evaluate_position(board):
                 board.move_stack[-1].to_square):
             pawn_attack_score -= constants["pawn_attack_score"]
 
+        global positions_evaluated
+        positions_evaluated += 1
+
         if board.turn:
             return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score + \
                    king_safety_score
@@ -150,32 +155,39 @@ def minimax(board, depth, alpha, beta, is_maximizing):
     # Calculate this board's Zobrist hash
     hash_key = zobrist_hash(board)
 
-    # If this position is in the transposition table, save some time and load that evaluation
+    # Check if there is an entry in the transposition table for this hash
     if hash_key in transposition_table:
-        return transposition_table[hash_key]
+        entry = transposition_table[hash_key]
+        if entry['depth'] >= depth:
+            if entry['type'] == 'exact':
+                return entry
+            elif entry['type'] == 'lowerbound':
+                alpha = max(alpha, entry['score'])
+            elif entry['type'] == 'upperbound':
+                beta = min(beta, entry['score'])
+            if alpha >= beta:
+                return entry
 
     # If we reached the bottom of the tree, evaluate the position
     if depth == 0:
+        transposition_table[hash_key] = {
+            "score": evaluate_position(board),
+            "best_move": None,
+            "depth": depth,
+            "type": "exact"
+        }
+
         return {
             "score": evaluate_position(board),
             "best_move": None,
             "depth": depth
         }
 
-    # Check if there is an entry in the transposition table for this hash
-    if hash_key in transposition_table:
-        entry = transposition_table[hash_key]
-        if entry['depth'] >= depth:
-            # Use the stored score as the current score
-            return entry
-
-    scores = []
-
     if is_maximizing:
         # Find best move for the maximizing player (white)
         max_score = float('-inf')
         best_move = None
-        for move in board.legal_moves:
+        for move in sorted(board.legal_moves, key=lambda move: utils.capture_value(board, move), reverse=True):
             board.push(move)
             score = minimax(board, depth - 1, alpha, beta, False)["score"]
             board.pop()
@@ -192,7 +204,8 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         transposition_table[hash_key] = {
             'score': max_score,
             'best_move': best_move,
-            'depth': depth
+            'depth': depth,
+            "type": "lowerbound"
         }
 
         return {
@@ -206,7 +219,7 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         min_score = float('inf')
         best_move = None
 
-        for move in board.legal_moves:
+        for move in sorted(board.legal_moves, key=lambda move: utils.capture_value(board, move)):
             board.push(move)
             score = minimax(board, depth - 1, alpha, beta, True)["score"]
             board.pop()
@@ -223,8 +236,10 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         transposition_table[hash_key] = {
             'score': min_score,
             'best_move': best_move,
-            'depth': depth
+            'depth': depth,
+            "type": "upperbound"
         }
+
 
         return {
             'score': min_score,
@@ -289,10 +304,9 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
     # Check if the transposition cache is too full, clear if necessary
     total_memory = psutil.virtual_memory().total
     python_memory = psutil.Process().memory_info().rss
-    available_memory = total_memory - python_memory
 
     if python_memory / total_memory > utils.load_constants()["maximum_python_ram_percentage"]:
-        # Too much RAM used, lets clear the cache
+        # Too much RAM used, let's clear the cache
         global transposition_table
         transposition_table = {}
 

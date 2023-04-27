@@ -4,3 +4,4 @@ from .load_openings import load_openings
 from .generate_pgn import generate_pgn, generate_san_move_list
 from .evaluate_endgame import evaluate_endgame
 from .zobrist_hash import ZobristHash
+from .capture_value import capture_value

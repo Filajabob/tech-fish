@@ -10,7 +10,7 @@ def material_balance(board):
     return (
         chess.popcount(white & board.pawns) - chess.popcount(black & board.pawns) +
         3 * (chess.popcount(white & board.knights) - chess.popcount(black & board.knights)) +
-        3 * (chess.popcount(white & board.bishops) - chess.popcount(black & board.bishops)) +
+        3.5 * (chess.popcount(white & board.bishops) - chess.popcount(black & board.bishops)) +
         5 * (chess.popcount(white & board.rooks) - chess.popcount(black & board.rooks)) +
         9 * (chess.popcount(white & board.queens) - chess.popcount(black & board.queens))
     )
