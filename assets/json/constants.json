@@ -11,5 +11,7 @@
   "opening_repeat_score": -0.7,
   "pawn_attack_score": 0.3,
   "maximum_python_ram_percentage": 0.25,
-  "maximum_transposition_depth_diff": 0
+  "maximum_transposition_depth_diff": 0,
+  "transpositions_filepath": "assets/json/transpositions.json",
+  "zobrist_keys_filepath": "assets/json/zobrist_keys.json"
 }

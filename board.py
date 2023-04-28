@@ -1,7 +1,7 @@
 import time
 import chess
 import utils
-from evaluate import evaluate_position, find_move
+from minimax import evaluate_position, find_move
 from multiprocessing import Pool
 
 board = chess.Board(fen=utils.load_constants()["starting_fen"])
