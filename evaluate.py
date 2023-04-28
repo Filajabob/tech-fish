@@ -6,6 +6,7 @@ import re
 import time
 from errors import *
 import psutil
+import multiprocessing as mp
 
 constants = utils.load_constants()
 zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
@@ -301,20 +302,27 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
             'beta': None
         }
 
-    start_time = time.time()
-    best_move = None
+    for d in range(1, max_depth + 1):
+        alpha, beta = -float('inf'), float('inf')
+        start_time = time.time()
 
-    alpha = float('-inf')
-    beta = float('inf')
+        if __name__ == '__main__':
+            # Start minimax as a process
+            p = multiprocessing.Process(target=minimax, args=(board, d, alpha, beta, engine_is_maximizing))
 
-    for depth in range(1, max_depth + 1):
-        search = minimax(board, depth, alpha, beta, engine_is_maximizing)
+            search = p.start()
 
-        alpha = search["alpha"]
-        beta = search["beta"]
+            # Wait 10 seconds for foo
+            time.sleep(constants["time_limit"])
 
-        # Don't break if a move wasn't found yet
-        if time.time() - start_time > time_limit and best_move:
+            # Terminate
+            p.terminate()
+
+            # Cleanup
+            p.join()
+
+        # Other way to abort if it takes too long
+        if time.time() - start_time >= constants["time_limit"]:
             break
 
     # Check if the transposition cache is too full, clear if necessary
@@ -332,4 +340,4 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         "move": str(search["best_move"]),
         "eval": search["score"],
         "depth": depth
-    }
+     }

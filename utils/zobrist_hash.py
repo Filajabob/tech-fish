@@ -20,12 +20,8 @@ class ZobristHash:
                 # Fill piece dicts with square keys
                 self.zobrist_array[piece][square] = random.getrandbits(64)
 
-        for index in range(16):
-            # Create keys for castling rights
-            self.zobrist_castling[index] = self.get_random_64bit_number()
-
         for en_passant_square in self.en_passant_squares:
-            self.en_passant[square] = random.getrandbits(64)
+            self.en_passant.append(random.getrandbits(64))
 
         self.current_hash = 0
 
@@ -46,11 +42,8 @@ class ZobristHash:
 
         if board.is_capture(move):
             if board.is_en_passant(move):
-                # TODO: Finish
-                self.current_hash ^= self.en_passant[board.to_square]
-
-                # XOR in the pawn to its new square
-                self.current_hash ^= self.zobrist_array[piece][move.to_square]
+                # XOR the en passant
+                self.current_hash ^= self.en_passant[self.en_passant_squares.index(move.to_square)]
 
             else:
                 captured_piece = board.piece_type_at(move.to_square)
