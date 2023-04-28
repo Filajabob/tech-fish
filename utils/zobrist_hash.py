@@ -5,16 +5,27 @@ import random
 class ZobristHash:
     def __init__(self, board):
         self.zobrist_array = {}
+        self.en_passant = []
+        self.en_passant_squares = [
+            chess.A3, chess.B3, chess.C3, chess.D3, chess.E3, chess.F3, chess.G3, chess.H3,
+            chess.A6, chess.B6, chess.C6, chess.D6, chess.E6, chess.F6, chess.G6, chess.H6
+        ]
 
         for piece in chess.PIECE_TYPES:
+            # Create a dict for each piece, ready to fill with squares
             self.zobrist_array[piece] = {}
 
         for piece in chess.PIECE_TYPES:
             for square in chess.SQUARES:
+                # Fill piece dicts with square keys
                 self.zobrist_array[piece][square] = random.getrandbits(64)
 
-        self.en_passant = [random.getrandbits(64) for _ in range(8)]
-        self.turn = random.getrandbits(64)
+        for index in range(16):
+            # Create keys for castling rights
+            self.zobrist_castling[index] = self.get_random_64bit_number()
+
+        for en_passant_square in self.en_passant_squares:
+            self.en_passant[square] = random.getrandbits(64)
 
         self.current_hash = 0
 
@@ -35,11 +46,8 @@ class ZobristHash:
 
         if board.is_capture(move):
             if board.is_en_passant(move):
-                # XOR out the en-passanted pawn
-                if self.turn == chess.BLACK:
-                    self.current_hash ^= self.zobrist_array[1][move.to_square - 8]
-                else:
-                    self.current_hash ^= self.zobrist_array[1][move.to_square + 8]
+                # TODO: Finish
+                self.current_hash ^= self.en_passant[board.to_square]
 
                 # XOR in the pawn to its new square
                 self.current_hash ^= self.zobrist_array[piece][move.to_square]
@@ -74,7 +82,9 @@ class ZobristHash:
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.A8]
                 self.current_hash ^= self.zobrist_array[chess.ROOK][chess.D8]
 
-        self.current_hash ^= self.zobrist_array[-1]
+        if not board.turn:
+            # Update the hash to include who's turn it is
+            self.current_hash ^= self.zobrist_array[-1]
 
         return self.current_hash
 

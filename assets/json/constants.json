@@ -1,6 +1,6 @@
 {
   "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-  "max_depth": 6,
+  "max_depth": 5,
   "time_limit": 1,
   "space_value": 0.07,
   "king_safety": -0.017,
@@ -11,5 +11,5 @@
   "opening_repeat_score": -0.7,
   "pawn_attack_score": 0.3,
   "maximum_python_ram_percentage": 0.25,
-  "maximum_transposition_depth_diff": 4
+  "maximum_transposition_depth_diff": 0
 }
