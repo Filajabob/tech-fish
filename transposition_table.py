@@ -1,10 +1,34 @@
 import chess
 import json
+import utils
+
+constants = utils.load_constants()
 
 
 class TranspositionTable:
     def __init__(self):
         self.table = {}
+
+    def skim_table(self):
+        """
+        Deletes some entries to optimize RAM. This affects self.table AND returns the new skimmed table
+        """
+
+        entries = self.table.values()
+
+        # Calculate total overflow, if any
+        overflow = len(entries) - constants["max_transposition_entries"]
+
+        if overflow <= 0:
+            return
+
+        sorted_entries = sorted(entries, key=lambda x: x["depth"], reverse=True)  # Sort based on depth
+        del sorted_entries[-overflow:]
+
+        self.table = sorted_entries
+
+        return self.table
+
 
     def get_raw_table(self):
         """
