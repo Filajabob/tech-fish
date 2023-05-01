@@ -1,6 +1,7 @@
 import random
 import time
 import re
+import cProfile
 
 import chess
 import psutil
@@ -28,21 +29,45 @@ def minimax(board, depth, alpha, beta, is_maximizing):
     :return:
     """
 
+    initial_alpha = alpha
+    initial_beta = beta
+
     hash_key = zobrist_hash.current_hash
 
     # Check if there is an entry in the transposition table for this hash
     if hash_key in transposition_table.table:
         entry = transposition_table.table[hash_key]
-        if depth - entry["depth"] <= constants["maximum_transposition_depth_diff"]:
-            return transposition_table.table[hash_key]
+        if entry["depth"] >= depth:
+            if entry["type"] == 'exact':
+                return entry
+            elif entry["type"] == 'lowerbound' and entry["score"] >= beta:
+                return entry
+            elif entry["type"] == 'upperbound' and entry["score"] <= alpha:
+                return entry
+        else:
+            if entry["type"] == "lowerbound":
+                # This node has a lowerbound score, so update alpha
+                alpha = max(alpha, entry["score"])
+            elif entry["type"] == "upperbound":
+                # This node has an upperbound score, so update beta
+                beta = min(beta, entry["score"])
 
     # If we reached the bottom of the tree, evaluate the position
     if depth == 0:
+        score = evaluate_position(board)
+
+        if score <= initial_alpha:
+            type = "lowerbound"
+        elif score >= initial_beta:
+            type = "upperbound"
+        else:
+            type = None
+
         transposition_table.table[hash_key] = {
-            "score": evaluate_position(board),
+            "score": score,
             "best_move": None,
             "depth": depth,
-            "type": "exact",
+            "type": type,
             'alpha': alpha,
             'beta': beta
         }
@@ -57,13 +82,14 @@ def minimax(board, depth, alpha, beta, is_maximizing):
 
     if is_maximizing:
         # Find best move for the maximizing player (white)
-        max_score = float('-inf')
-        best_move = None
-        for move in utils.order_moves(board, board.legal_moves):
-            zobrist_hash.move(move, board)
-            board.push(move)
+        max_score = float('-inf')  # Currently, the best score that can be achieved
+        best_move = None  # The best move
 
-            score = minimax(board, depth - 1, alpha, beta, False)["score"]
+        for move in utils.order_moves(board, board.legal_moves):
+            zobrist_hash.move(move, board)  # Update the hash
+            board.push(move)  # Try the move
+
+            score = minimax(board, depth - 1, alpha, beta, False)["score"]  # gogogo
 
             board.pop()
             zobrist_hash.pop(move, board)
@@ -77,11 +103,18 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             if alpha >= beta:
                 break
 
+        if score <= initial_alpha:
+            type = "lowerbound"
+        elif score >= initial_beta:
+            type = "upperbound"
+        else:
+            type = None
+
         transposition_table.table[hash_key] = {
             'score': max_score,
             'best_move': best_move,
             'depth': depth,
-            "type": "lowerbound",
+            "type": type,
             'alpha': alpha,
             'beta': beta
         }
@@ -103,7 +136,8 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             zobrist_hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            score = minimax(board, depth - 1, alpha, beta, True)["score"]
+            search = minimax(board, depth - 1, alpha, beta, True)
+            score = search["score"]
 
             board.pop()
             zobrist_hash.pop(move, board)  # Make sure the Zobrist Hash pop happens after the pop
@@ -117,11 +151,18 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             if beta <= alpha:
                 break
 
+        if score <= initial_alpha:
+            type = "lowerbound"
+        elif score >= initial_beta:
+            type = "upperbound"
+        else:
+            type = None
+
         transposition_table.table[hash_key] = {
             'score': min_score,
             'best_move': best_move,
             'depth': depth,
-            "type": "upperbound",
+            "type": type,
             'alpha': alpha,
             'beta': beta
         }
@@ -135,7 +176,7 @@ def minimax(board, depth, alpha, beta, is_maximizing):
         }
 
 
-def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False):
+def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True):
     # Check if we are in an endgame
     if len(board.piece_map()) <= 7:
         try:
@@ -184,6 +225,16 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         alpha, beta = -float('inf'), float('inf')
         start_time = time.time()
         search = minimax(board, depth, alpha, beta, engine_is_maximizing)
+
+        # Save the full search to the transposition table
+        transposition_table.table[zobrist_hash.current_hash] = {
+            'score': search["score"],
+            'best_move': search["best_move"],
+            'depth': depth,
+            "type": "exact",
+            'alpha': alpha,
+            'beta': beta
+        }
 
         # Abort when time limit is exceeded
         if time.time() - start_time >= constants["time_limit"]:

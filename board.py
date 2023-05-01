@@ -3,6 +3,7 @@ import chess
 import utils
 from minimax import evaluate_position, find_move
 from multiprocessing import Pool
+import cProfile
 
 board = chess.Board(fen=utils.load_constants()["starting_fen"])
 # TODO: FIX DISPLAY ISSUES: display_board = display.start()
@@ -22,8 +23,16 @@ def print_board(board, is_white):
 
 def find_and_make_move(board, maximizing=True, allow_book=True):
     start_time = time.time()
+
+    profiler = cProfile.Profile()
+    profiler.enable()
+
     eval = find_move(board, utils.load_constants()["max_depth"], utils.load_constants()["time_limit"], allow_book=allow_book,
                      engine_is_maximizing=maximizing)
+
+    profiler.disable()
+    profiler.dump_stats("profile.stats")
+
     time_spent = round(time.time() - start_time, 2)
 
     board.push_san(eval["move"])
