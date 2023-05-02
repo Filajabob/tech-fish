@@ -44,13 +44,8 @@ def minimax(board, depth, alpha, beta, is_maximizing):
                 return entry
             elif entry["type"] == 'upperbound' and entry["score"] <= alpha:
                 return entry
-            else:
-                if entry["type"] == "lowerbound":
-                    # This node has a lowerbound score, so update alpha
-                    alpha = max(alpha, entry["score"])
-                elif entry["type"] == "upperbound":
-                    # This node has an upperbound score, so update beta
-                    beta = min(beta, entry["score"])
+            if alpha >= beta:
+                return entry
 
     # If we reached the bottom of the tree, evaluate the position
     if depth == 0:
@@ -103,9 +98,9 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             if alpha >= beta:
                 break
 
-        if score <= initial_alpha:
+        if max_score <= initial_alpha:
             type = "lowerbound"
-        elif score >= initial_beta:
+        elif max_score >= initial_beta:
             type = "upperbound"
         else:
             type = None
@@ -151,9 +146,9 @@ def minimax(board, depth, alpha, beta, is_maximizing):
             if beta <= alpha:
                 break
 
-        if score <= initial_alpha:
+        if min_score <= initial_alpha:
             type = "lowerbound"
-        elif score >= initial_beta:
+        elif min_score >= initial_beta:
             type = "upperbound"
         else:
             type = None

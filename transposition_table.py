@@ -29,7 +29,6 @@ class TranspositionTable:
 
         return self.table
 
-
     def get_raw_table(self):
         """
         Converts all chess.Moves to UCI format.
@@ -48,11 +47,15 @@ class TranspositionTable:
 
         return raw_table
 
-    def serialize(self, filepath):
+    def serialize(self, filepath, *, skim=True):
         """
         Dump self.table into a JSON file
+        :param skim: Whether to skim the table.
         :param filepath: Filepath to dump into
         """
+
+        if skim:
+            self.skim_table()
 
         with open(filepath, 'w') as f:
             json.dump(self.get_raw_table(), f, indent=4)
