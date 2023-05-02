@@ -36,3 +36,7 @@ class TracedThread(threading.Thread):
 
     def kill(self):
         self.killed = True
+
+    def join(self):
+        Thread.join(self)
+        return self._return

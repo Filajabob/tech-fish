@@ -16,6 +16,7 @@ constants = utils.load_constants()
 zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 transposition_table = TranspositionTable.load(constants["transpositions_filepath"])
 
+
 # TODO: Fix Zobrist hashing taking too long, or remove it
 
 
@@ -77,44 +78,33 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
             'beta': beta
         }
 
-    kill_threads = False
-
     if is_maximizing:
         # Find best move for the maximizing player (white)
         max_score = float('-inf')  # Currently, the best score that can be achieved
         best_move = None  # The best move
 
+        if depth != 1 and not no_helpers:
+            helpers = []
+
+            # Start helper threads
+            for i in range(constants["num_helper_threads"]):
+                if i % 2 == 0:
+                    increment = 1
+                else:
+                    increment = 0
+
+                helper = utils.TracedThread(target=minimax, args=(copy.copy(board), depth + increment, alpha, beta,
+                                                                  False, copy.copy(zobrist_hash), True))
+                helpers.append(helper)
+                helper.start()
+
+            score = minimax(board, depth - 1, alpha, beta, False, no_helpers=True)["score"]  # gogogo
+
         for move in utils.order_moves(board, board.legal_moves):
             zobrist_hash.move(move, board)  # Update the hash
             board.push(move)  # Try the move
 
-            if depth != 1 and not no_helpers:
-                helpers = []
-
-                # Start helper threads
-                for i in range(constants["num_helper_threads"]):
-                    if i % 2 == 0:
-                        increment = 1
-                    else:
-                        increment = 0
-
-                    helper = threading.Thread(target=minimax, args=(copy.copy(board), depth + increment, alpha, beta,
-                                                                    False, copy.copy(zobrist_hash), True))
-                    helpers.append(helper)
-                    helper.start()
-
-                score = minimax(board, depth - 1, alpha, beta, False, no_helpers=True)["score"]  # gogogo
-
-                for helper in helpers:
-                    print("killing")
-                    helper.kill()
-                    print("joining")
-                    helper.join()
-
-                    print(helper.is_alive())
-
-            else:
-                score = minimax(board, depth - 1, alpha, beta, False, no_helpers=no_helpers)["score"]  # gogogo
+            score = minimax(board, depth - 1, alpha, beta, False, no_helpers=no_helpers)["score"]  # gogogo
 
             board.pop()
             zobrist_hash.pop(move, board)
@@ -144,6 +134,28 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
             'beta': beta
         })
 
+        if depth != 1 and not no_helpers:
+            results = []
+
+            for helper in helpers:
+                helper.kill()
+                results.append(helper.join())
+
+            results = list(filter(None.__ne__, results))  # https://stackoverflow.com/a/1157160
+
+            results.append({
+                'score': max_score,
+                'best_move': best_move,
+                'depth': depth,
+                'alpha': alpha,
+                'beta': beta
+            })
+
+            results = sorted(entries, key=lambda x: x["score"],
+                             reverse=True)  # Sort based on greatest score (because we are maximizing)
+
+        return results[0]
+
         return {
             'score': max_score,
             'best_move': best_move,
@@ -157,37 +169,27 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
         min_score = float('inf')
         best_move = None
 
+        # Start helpers if depth is not 1 and helpers are allowed
+        if depth != 1 and not no_helpers:
+            helpers = []
+
+            # Start helper threads
+            for i in range(constants["num_helper_threads"]):
+                if i % 2 == 0:
+                    increment = 1
+                else:
+                    increment = 0
+
+                helper = utils.TracedThread(target=minimax, args=(copy.copy(board), depth + increment, alpha, beta,
+                                                                  True, copy.copy(zobrist_hash), True))
+                helpers.append(helper)
+                helper.start()
+
         for move in utils.order_moves(board, board.legal_moves):
             zobrist_hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            if depth != 1 and not no_helpers:
-                helpers = []
-
-                # Start helper threads
-                for i in range(constants["num_helper_threads"]):
-                    if i % 2 == 0:
-                        increment = 1
-                    else:
-                        increment = 0
-
-                    helper = utils.TracedThread(target=minimax, args=(copy.copy(board), depth + increment, alpha, beta,
-                                                                    True, copy.copy(zobrist_hash), True))
-                    helpers.append(helper)
-                    helper.start()
-
-                score = minimax(board, depth - 1, alpha, beta, True, no_helpers=True)["score"]  # gogogo
-
-                for helper in helpers:
-                    print("killing")
-                    helper.kill()
-                    print("joining")
-                    helper.join()
-
-                    print(helper.is_alive())
-
-            else:
-                score = minimax(board, depth - 1, alpha, beta, True, no_helpers=no_helpers)["score"]  # gogogo
+            score = minimax(board, depth - 1, alpha, beta, True, no_helpers=no_helpers)["score"]  # gogogo
 
             board.pop()
             zobrist_hash.pop(move, board)  # Make sure the Zobrist Hash pop happens after the pop
@@ -217,13 +219,27 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
             'beta': beta
         })
 
-        return {
-            'score': min_score,
-            'best_move': best_move,
-            'depth': depth,
-            'alpha': alpha,
-            'beta': beta
-        }
+        if depth != 1 and not no_helpers:
+            results = []
+
+            for helper in helpers:
+                helper.kill()
+                results.append(helper.join())
+
+            results = list(filter(None.__ne__, results))  # https://stackoverflow.com/a/1157160
+
+            results.append({
+                'score': min_score,
+                'best_move': best_move,
+                'depth': depth,
+                'alpha': alpha,
+                'beta': beta
+            })
+
+            results = sorted(entries, key=lambda x: x["score"],
+                             reverse=False)  # Sort based on lowest score (because we are minimizing)
+
+        return results[0]
 
 
 def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True):
@@ -301,4 +317,4 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         "move": str(search["best_move"]),
         "eval": search["score"],
         "depth": depth
-     }
+    }

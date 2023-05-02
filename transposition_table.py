@@ -9,7 +9,7 @@ constants = utils.load_constants()
 class TranspositionTable:
     def __init__(self):
         """
-        A transposition table which uses Zobrist hashing. Compatible with multiprocessing.
+        A transposition table which uses Zobrist hashing. Compatible with Lazy SMP.
         """
         self.table = {}
         self.lock = threading.RLock()
