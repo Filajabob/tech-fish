@@ -2,6 +2,7 @@ import requests
 import json
 from errors import *
 
+
 def evaluate_endgame(board):
     """Evaluates and returns a move for a position when there are 7 pieces or less."""
 

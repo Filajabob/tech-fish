@@ -1,5 +1,6 @@
 import chess
 import json
+import threading
 import utils
 
 constants = utils.load_constants()
@@ -7,7 +8,11 @@ constants = utils.load_constants()
 
 class TranspositionTable:
     def __init__(self):
+        """
+        A transposition table which uses Zobrist hashing. Compatible with multiprocessing.
+        """
         self.table = {}
+        self.lock = threading.RLock()
 
     def skim_table(self):
         """
@@ -59,6 +64,10 @@ class TranspositionTable:
 
         with open(filepath, 'w') as f:
             json.dump(self.get_raw_table(), f, indent=4)
+
+    def add_entry(self, hash, entry: dict):
+        with self.lock:
+            self.table[hash] = entry
 
     @staticmethod
     def load(filepath):
