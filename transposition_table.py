@@ -14,7 +14,7 @@ class TranspositionTable:
         A transposition table which uses Zobrist hashing. Compatible with Lazy SMP.
         """
         self.table = {}
-        self.TABLESIZE = 2^20
+        self.TABLESIZE = 2 ** 20
 
     def skim_table(self):
         """
@@ -117,4 +117,3 @@ class TranspositionTable:
             self.table = json.load(f)
 
         return self
-

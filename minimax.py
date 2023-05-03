@@ -98,20 +98,24 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
                 else:
                     increment = 0
 
-                helper = utils.TracedThread(target=minimax, args=(copy.copy(board), depth + increment, alpha, beta,
-                                                                  False, copy.copy(zobrist_hash), True))
+                helper = utils.TracedThread(target=minimax, args=(copy.deepcopy(board), depth + increment, alpha, beta,
+                                                                  is_maximizing, copy.deepcopy(zobrist_hash), True))
                 helpers.append(helper)
                 helper.start()
 
         for move in utils.order_moves(board, board.legal_moves, transposition_table, hash, depth):
-            hash.move(move, board)  # Update the hash
+            hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
-            search = minimax(board, depth - 1, alpha, beta, False, thread=thread or not top)  # gogogo
+            search = minimax(board, depth - 1, alpha, beta, False, thread=thread or not top)
 
             if search is None and not top:
+                board.pop()
+                zobrist_hash.pop(move, board)
                 return
             elif search is None and top:
+                board.pop()
+                zobrist_hash.pop(move, board)
                 continue
 
             score = search["score"]
@@ -198,8 +202,8 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
                 else:
                     increment = 0
 
-                helper = utils.TracedThread(target=minimax, args=(copy.copy(board), depth + increment, alpha, beta,
-                                                                  True, copy.copy(zobrist_hash), True))
+                helper = utils.TracedThread(target=minimax, args=(copy.deepcopy(board), depth + increment, alpha, beta,
+                                                                  is_maximizing, copy.deepcopy(zobrist_hash), True))
                 helpers.append(helper)
                 helper.start()
 
@@ -207,11 +211,15 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            search = minimax(board, depth - 1, alpha, beta, True, thread=thread or not top)  # gogogo
+            search = minimax(board, depth - 1, alpha, beta, True, thread=thread or not top)
 
             if search is None and not top:
+                board.pop()
+                zobrist_hash.pop(move, board)
                 return
             elif search is None and top:
+                board.pop()
+                zobrist_hash.pop(move, board)
                 continue
 
             score = search["score"]

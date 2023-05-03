@@ -14,12 +14,6 @@ def order_moves(board, moves, transposition_table, hash, depth, iid=False):
             # PV heuristic
             starters = [entry["best_move"]]
 
-    if not starters and depth - 2 > 0 and iid:
-        # No PV move could be found, use IID
-        from minimax import minimax
-
-        starters = [minimax(board, round(depth - 2), float("-inf"), float("inf"), board.turn)["best_move"]]
-
     starters = [starter for starter in starters if starter is not None]
 
     captures = []
