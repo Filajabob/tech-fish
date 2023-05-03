@@ -1,3 +1,4 @@
+import hashlib
 import chess
 import json
 import threading
@@ -12,7 +13,7 @@ class TranspositionTable:
         A transposition table which uses Zobrist hashing. Compatible with Lazy SMP.
         """
         self.table = {}
-        self.lock = threading.RLock()
+        self.TABLESIZE = 2^20
 
     def skim_table(self):
         """
@@ -65,9 +66,39 @@ class TranspositionTable:
         with open(filepath, 'w') as f:
             json.dump(self.get_raw_table(), f, indent=4)
 
+    def dict_to_int(self, d):
+        # Use the hash of the string representation of the dictionary as the integer value
+        hash_val = hashlib.sha256(str(d).encode('utf-8')).hexdigest()
+        # Convert the hash value to an integer using base 16 (hexadecimal)
+        int_val = int(hash_val, 16)
+        return int_val
+
     def add_entry(self, hash, entry: dict):
-        with self.lock:
-            self.table[hash] = entry
+        index = hash % self.TABLESIZE  # Generate an index
+        key = hash ^ self.dict_to_int(entry)  # Use Lock-less XOR to generate a key
+        entry["key"] = key  # Set the key
+
+        self.table[index] = entry
+
+    def get_entry(self, hash):
+        index = hash % self.TABLESIZE
+
+        # Because XOR inverts each time its applied, we XOR again to get the true hash
+        if self.table[index]["key"] ^ self.dict_to_int(self.table[index]) == hash:
+            return self.table[index]
+
+    def entry_exists(self, hash):
+        index = hash % self.TABLESIZE
+
+        # Index doesn't exist
+        if not index in self.table: return False
+
+        if not (self.table[index]["key"] ^ self.dict_to_int(self.table[index]) == hash):
+            # Key doesn't match original hash
+            return False
+        else:
+            # Index exists, keys match
+            return True
 
     @staticmethod
     def load(filepath):

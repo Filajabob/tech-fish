@@ -16,11 +16,13 @@ constants = utils.load_constants()
 zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 transposition_table = TranspositionTable.load(constants["transpositions_filepath"])
 
+abort_flag = threading.Event()
+
 
 # TODO: Fix Zobrist hashing taking too long, or remove it
 
 
-def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_helpers=False):
+def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=False, top=False):
     """
     A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing. Also uses Lazy SMP.
     :param stop:
@@ -38,8 +40,8 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
     hash_key = zobrist_hash.current_hash
 
     # Check if there is an entry in the transposition table for this hash
-    if hash_key in transposition_table.table:
-        entry = transposition_table.table[hash_key]
+    if transposition_table.entry_exists(hash_key):
+        entry = transposition_table.get_entry(hash_key)
         if entry["depth"] >= depth:
             if entry["type"] == 'exact':
                 return entry
@@ -83,7 +85,8 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
         max_score = float('-inf')  # Currently, the best score that can be achieved
         best_move = None  # The best move
 
-        if depth != 1 and not no_helpers:
+        if depth != 1 and not thread:
+            abort_flag.clear()
             helpers = []
 
             # Start helper threads
@@ -98,13 +101,16 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
                 helpers.append(helper)
                 helper.start()
 
-            score = minimax(board, depth - 1, alpha, beta, False, no_helpers=True)["score"]  # gogogo
-
         for move in utils.order_moves(board, board.legal_moves):
             zobrist_hash.move(move, board)  # Update the hash
             board.push(move)  # Try the move
 
-            score = minimax(board, depth - 1, alpha, beta, False, no_helpers=no_helpers)["score"]  # gogogo
+            search = minimax(board, depth - 1, alpha, beta, False, thread=thread or not top)  # gogogo
+
+            if search is None:
+                return
+
+            score = search["score"]
 
             board.pop()
             zobrist_hash.pop(move, board)
@@ -117,6 +123,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
 
             if alpha >= beta:
                 break
+
+            if abort_flag.is_set() and thread:
+                return
 
         if max_score <= initial_alpha:
             type = "lowerbound"
@@ -134,14 +143,10 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
             'beta': beta
         })
 
-        if depth != 1 and not no_helpers:
+        if depth != 1 and not thread:
             results = []
 
-            for helper in helpers:
-                helper.kill()
-                results.append(helper.join())
-
-            results = list(filter(None.__ne__, results))  # https://stackoverflow.com/a/1157160
+            abort_flag.set()
 
             results.append({
                 'score': max_score,
@@ -151,10 +156,18 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
                 'beta': beta
             })
 
-            results = sorted(entries, key=lambda x: x["score"],
+            # Delete unfinished searches
+            results = [result for result in results if result is not None]
+
+            results = sorted(results, key=lambda x: x["depth"], reverse=True)  # Sort based on depth
+            required_depth = results[0]["depth"]  # Get the highest depth
+
+            results = [result for result in results if result["depth"] >= required_depth]  # Delete results which aren't deep enough
+
+            results = sorted(results, key=lambda x: x["score"],
                              reverse=True)  # Sort based on greatest score (because we are maximizing)
 
-        return results[0]
+            return results[0]
 
         return {
             'score': max_score,
@@ -170,7 +183,8 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
         best_move = None
 
         # Start helpers if depth is not 1 and helpers are allowed
-        if depth != 1 and not no_helpers:
+        if depth != 1 and not thread:
+            abort_flag.clear()
             helpers = []
 
             # Start helper threads
@@ -189,7 +203,12 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
             zobrist_hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            score = minimax(board, depth - 1, alpha, beta, True, no_helpers=no_helpers)["score"]  # gogogo
+            search = minimax(board, depth - 1, alpha, beta, True, thread=thread or not top)  # gogogo
+
+            if search is None:
+                return
+
+            score = search["score"]
 
             board.pop()
             zobrist_hash.pop(move, board)  # Make sure the Zobrist Hash pop happens after the pop
@@ -202,6 +221,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
 
             if beta <= alpha:
                 break
+
+            if abort_flag.is_set() and thread:
+                return
 
         if min_score <= initial_alpha:
             type = "lowerbound"
@@ -219,14 +241,10 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
             'beta': beta
         })
 
-        if depth != 1 and not no_helpers:
+        if depth != 1 and not thread:
             results = []
 
-            for helper in helpers:
-                helper.kill()
-                results.append(helper.join())
-
-            results = list(filter(None.__ne__, results))  # https://stackoverflow.com/a/1157160
+            abort_flag.set()
 
             results.append({
                 'score': min_score,
@@ -236,13 +254,28 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, no_help
                 'beta': beta
             })
 
-            results = sorted(entries, key=lambda x: x["score"],
+            results = [result for result in results if result is not None]
+
+            results = sorted(results, key=lambda x: x["depth"], reverse=True)  # Sort based on depth
+            required_depth = results[0]["depth"]  # Get the highest depth
+
+            results = [result for result in results if result["depth"] >= required_depth]  # Delete results which aren't deep enough
+
+            results = sorted(results, key=lambda x: x["score"],
                              reverse=False)  # Sort based on lowest score (because we are minimizing)
 
-        return results[0]
+            return results[0]
+
+        return {
+            'score': min_score,
+            'best_move': best_move,
+            'depth': depth,
+            'alpha': alpha,
+            'beta': beta
+        }
 
 
-def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True):
+def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True, print_depth=True):
     # Check if we are in an endgame
     if len(board.piece_map()) <= 7:
         try:
@@ -289,28 +322,31 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
 
     # Iterative Deepening
     for depth in range(1, max_depth + 1):
+        if print_depth:
+            print(f"\rDepth: {depth}", end='')
+
         alpha, beta = -float('inf'), float('inf')
         start_time = time.time()
-        search = minimax(board, depth, alpha, beta, engine_is_maximizing)
+        search = minimax(board, depth, alpha, beta, engine_is_maximizing, top=True)
 
         # Save the full search to the transposition table
-        transposition_table.table[zobrist_hash.current_hash] = {
+        transposition_table.add_entry(zobrist_hash.current_hash, {
             'score': search["score"],
             'best_move': search["best_move"],
             'depth': depth,
             "type": "exact",
             'alpha': alpha,
             'beta': beta
-        }
+        })
 
         # Abort when time limit is exceeded
         if time.time() - start_time >= constants["time_limit"]:
             break
 
-    # TODO: implement way to limit transposition table's size
+    if print_depth:
+        print("\n")
 
     zobrist_hash.move(board.parse_san(str(search["best_move"])), board)
-
     transposition_table.serialize(constants["transpositions_filepath"])
 
     return {
