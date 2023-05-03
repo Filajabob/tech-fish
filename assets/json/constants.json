@@ -15,5 +15,5 @@
   "transpositions_filepath": "assets/json/transpositions.json",
   "zobrist_keys_filepath": "assets/json/zobrist_keys.json",
   "max_transposition_entries": 5000000,
-  "num_helper_threads": 2
+  "num_helper_threads": 1
 }

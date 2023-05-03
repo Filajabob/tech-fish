@@ -3,6 +3,7 @@ import chess
 import json
 import threading
 import utils
+import copy
 
 constants = utils.load_constants()
 
@@ -83,17 +84,25 @@ class TranspositionTable:
     def get_entry(self, hash):
         index = hash % self.TABLESIZE
 
-        # Because XOR inverts each time its applied, we XOR again to get the true hash
-        if self.table[index]["key"] ^ self.dict_to_int(self.table[index]) == hash:
-            return self.table[index]
+        if not self.entry_exists(hash):
+            raise KeyError(hash)
+
+        entry = copy.copy(self.table[index])
+        del entry["key"]
+
+        return entry
 
     def entry_exists(self, hash):
         index = hash % self.TABLESIZE
 
         # Index doesn't exist
-        if not index in self.table: return False
+        if index not in self.table:
+            return False
 
-        if not (self.table[index]["key"] ^ self.dict_to_int(self.table[index]) == hash):
+        entry = copy.copy(self.table[index])
+        del entry["key"]
+
+        if not (self.table[index]["key"] ^ self.dict_to_int(entry) == hash):
             # Key doesn't match original hash
             return False
         else:

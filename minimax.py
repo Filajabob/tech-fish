@@ -3,6 +3,7 @@ import time
 import re
 import threading
 import copy
+import traceback
 
 import chess
 import psutil
@@ -13,8 +14,9 @@ from transposition_table import TranspositionTable
 from evaluate_position import evaluate_position
 
 constants = utils.load_constants()
-zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 transposition_table = TranspositionTable.load(constants["transpositions_filepath"])
+
+zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 
 abort_flag = threading.Event()
 
@@ -37,7 +39,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
     initial_alpha = alpha
     initial_beta = beta
 
-    hash_key = zobrist_hash.current_hash
+    hash_key = hash.current_hash
 
     # Check if there is an entry in the transposition table for this hash
     if transposition_table.entry_exists(hash_key):
@@ -101,14 +103,16 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
                 helpers.append(helper)
                 helper.start()
 
-        for move in utils.order_moves(board, board.legal_moves):
-            zobrist_hash.move(move, board)  # Update the hash
+        for move in utils.order_moves(board, board.legal_moves, transposition_table, hash, depth):
+            hash.move(move, board)  # Update the hash
             board.push(move)  # Try the move
 
             search = minimax(board, depth - 1, alpha, beta, False, thread=thread or not top)  # gogogo
 
-            if search is None:
+            if search is None and not top:
                 return
+            elif search is None and top:
+                continue
 
             score = search["score"]
 
@@ -124,7 +128,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             if alpha >= beta:
                 break
 
-            if abort_flag.is_set() and thread:
+            if abort_flag.is_set() and not top:
                 return
 
         if max_score <= initial_alpha:
@@ -199,14 +203,16 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
                 helpers.append(helper)
                 helper.start()
 
-        for move in utils.order_moves(board, board.legal_moves):
-            zobrist_hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
+        for move in utils.order_moves(board, board.legal_moves, transposition_table, hash, depth):
+            hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
             search = minimax(board, depth - 1, alpha, beta, True, thread=thread or not top)  # gogogo
 
-            if search is None:
+            if search is None and not top:
                 return
+            elif search is None and top:
+                continue
 
             score = search["score"]
 
@@ -222,7 +228,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             if beta <= alpha:
                 break
 
-            if abort_flag.is_set() and thread:
+            if abort_flag.is_set() and not top:
                 return
 
         if min_score <= initial_alpha:
