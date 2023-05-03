@@ -87,27 +87,13 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         max_score = float('-inf')  # Currently, the best score that can be achieved
         best_move = None  # The best move
 
-        if depth != 1 and not thread:
-            abort_flag.clear()
-            helpers = []
-
-            # Start helper threads
-            for i in range(constants["num_helper_threads"]):
-                if i % 2 == 0:
-                    increment = 1
-                else:
-                    increment = 0
-
-                helper = utils.TracedThread(target=minimax, args=(copy.deepcopy(board), depth + increment, alpha, beta,
-                                                                  is_maximizing, copy.deepcopy(zobrist_hash), True))
-                helpers.append(helper)
-                helper.start()
+        helpers = utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, zobrist_hash)
 
         for move in utils.order_moves(board, board.legal_moves, transposition_table, hash, depth):
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
-            search = minimax(board, depth - 1, alpha, beta, False, thread=thread or not top)
+            search = minimax(board, depth - 1, alpha, beta, False, thread=thread or not top, top=top)
 
             if search is None and not top:
                 board.pop()
@@ -151,31 +137,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             'beta': beta
         })
 
-        if depth != 1 and not thread:
-            results = []
-
-            abort_flag.set()
-
-            results.append({
-                'score': max_score,
-                'best_move': best_move,
-                'depth': depth,
-                'alpha': alpha,
-                'beta': beta
-            })
-
-            # Delete unfinished searches
-            results = [result for result in results if result is not None]
-
-            results = sorted(results, key=lambda x: x["depth"], reverse=True)  # Sort based on depth
-            required_depth = results[0]["depth"]  # Get the highest depth
-
-            results = [result for result in results if result["depth"] >= required_depth]  # Delete results which aren't deep enough
-
-            results = sorted(results, key=lambda x: x["score"],
-                             reverse=True)  # Sort based on greatest score (because we are maximizing)
-
-            return results[0]
+        return utils.kill_helpers(abort_flag, helpers)
 
         return {
             'score': max_score,
@@ -211,7 +173,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            search = minimax(board, depth - 1, alpha, beta, True, thread=thread or not top)
+            search = minimax(board, depth - 1, alpha, beta, True, thread=thread or not top, top=top)
 
             if search is None and not top:
                 board.pop()
