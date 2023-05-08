@@ -14,7 +14,8 @@ from transposition_table import TranspositionTable
 from evaluate_position import evaluate_position
 
 constants = utils.load_constants()
-transposition_table = TranspositionTable.load(constants["transpositions_filepath"])
+# transposition_table = TranspositionTable.load(constants["transpositions_filepath"])
+transposition_table = TranspositionTable()
 
 zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 
@@ -90,7 +91,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         if depth != 1 and not thread:
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
 
-        for move in utils.order_moves(board, board.legal_moves, transposition_table, hash, depth):
+        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash)
+
+        for move in ordered_moves:
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
@@ -153,7 +156,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         if depth != 1 and not thread:
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
 
-        for move in utils.order_moves(board, board.legal_moves, transposition_table, hash, depth):
+        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash)
+
+        for move in ordered_moves:
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
@@ -280,7 +285,7 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         print("\n")
 
     zobrist_hash.move(board.parse_san(str(search["best_move"])), board)
-    transposition_table.serialize(constants["transpositions_filepath"])
+    # transposition_table.serialize(constants["transpositions_filepath"])
 
     return {
         "move": str(search["best_move"]),
