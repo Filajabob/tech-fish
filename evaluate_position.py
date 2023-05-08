@@ -3,6 +3,18 @@ import utils
 
 constants = utils.load_constants()
 
+outer_central_squares = [
+        chess.C3, chess.D3, chess.E3, chess.F3,
+        chess.C4,                     chess.F4,
+        chess.C5,                     chess.F5,
+        chess.C6, chess.D6, chess.E6, chess.F6,
+]
+
+very_central_squares = [
+        chess.D4, chess.E4,
+        chess.D5, chess.E5,
+]
+
 
 def evaluate_position(board):
     """Evaluates the current material of a singular position."""
@@ -22,17 +34,6 @@ def evaluate_position(board):
         material_balance = utils.material_balance(board)
 
         # Give a bonus for pieces being on a central square
-        outer_central_squares = [
-            chess.C3, chess.D3, chess.E3, chess.F3,
-            chess.C4,                     chess.F4,
-            chess.C5,                     chess.F5,
-            chess.C6, chess.D6, chess.E6, chess.F6,
-        ]
-
-        very_central_squares = [
-            chess.D4, chess.E4,
-            chess.D5, chess.E5,
-        ]
 
         # Central Score = Central Pieces Owned by Us - Central Pieces Owned by Opponent
         # TODO: Incentivize pieces closer to the center
@@ -110,9 +111,10 @@ def evaluate_position(board):
         pawn_attack_score = 0
 
         # This means a pawn has taken something in the previous move, which is probably bad for us
-        if board.move_stack[-1].drop == 1 and \
-                chess.square_file(board.move_stack[-1].from_square) != chess.square_file(
-                board.move_stack[-1].to_square):
+        prev_move = board.move_stack[-1]
+        if prev_move.drop == 1 and \
+                chess.square_file(prev_move.from_square) != chess.square_file(
+                prev_move.to_square):
             pawn_attack_score -= constants["pawn_attack_score"]
 
         if board.turn:
