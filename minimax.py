@@ -21,6 +21,8 @@ zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 
 abort_flag = threading.Event()
 
+killer_moves = [[None] * constants["max_depth"]] * 2
+
 
 # TODO: Fix Zobrist hashing taking too long, or remove it
 
@@ -115,6 +117,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
 
             alpha = max(alpha, max_score)
 
+            if score > alpha:
+                killer_moves[board.turn][depth] = move
+
             if alpha >= beta:
                 break
 
@@ -179,6 +184,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
                 best_move = move
 
             beta = min(beta, min_score)
+
+            if score < beta:
+                killer_moves[board.turn][depth] = move
 
             if beta <= alpha:
                 break

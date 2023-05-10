@@ -1,3 +1,4 @@
+import chess
 from .load_constants import load_constants
 from .get_piece_value import get_piece_value
 
@@ -9,7 +10,12 @@ def score_move(move, board, transposition_table, hash):
         # Use MVV-LVA
 
         aggressor = board.piece_at(move.from_square)
-        victim = board.piece_at(move.to_square)
+
+        if not board.is_en_passant(move):
+            victim = board.piece_at(move.to_square)
+        else:
+            victim = chess.Piece(piece_type=1, color=not board.turn)
+
         score = get_piece_value(aggressor) - get_piece_value(victim)
 
         return score
@@ -17,7 +23,12 @@ def score_move(move, board, transposition_table, hash):
         # Use TT ordering
         if transposition_table.entry_exists(hash.current_hash):
             entry = transposition_table.get_entry(hash.current_hash)
-            return abs(entry["score"])
+
+            if board.turn:
+                # White to move. Positive is good for white, negative is bad
+                return entry["score"]
+            else:
+                return -entry["score"]
         else:
             return 0
 
