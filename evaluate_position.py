@@ -3,18 +3,6 @@ import utils
 
 constants = utils.load_constants()
 
-outer_central_squares = [
-        chess.C3, chess.D3, chess.E3, chess.F3,
-        chess.C4,                     chess.F4,
-        chess.C5,                     chess.F5,
-        chess.C6, chess.D6, chess.E6, chess.F6,
-]
-
-very_central_squares = [
-        chess.D4, chess.E4,
-        chess.D5, chess.E5,
-]
-
 
 def evaluate_position(board):
     """Evaluates the current material of a singular position."""
@@ -33,53 +21,17 @@ def evaluate_position(board):
         # Evaluate material (positive is good for white, negative good for black)
         material_balance = utils.material_balance(board)
 
-        # Give a bonus for pieces being on a central square
+        piece_maps = constants["piece_maps"]
+        piece_map_score = 0
 
-        # Central Score = Central Pieces Owned by Us - Central Pieces Owned by Opponent
-        # TODO: Incentivize pieces closer to the center
-        central_score = 0
-        for square in outer_central_squares:
-            piece = board.piece_at(square)
-            if piece is not None:
-                if piece.color == board.turn:
-                    if piece.piece_type == 1:
-                        # We really like pawns in the center
-                        central_score += constants["central_pawn_score"]
-
-                    central_score += constants["central_score"]
-                elif piece.color != board.turn:
-                    if piece.piece_type == 1:
-                        central_score -= constants["central_pawn_score"]
-
-                    elif piece.piece_type in [5, 6]:
-                        central_score -= constants["central_important_piece_score"]
-
-                    central_score -= constants["central_score"]
-
-        for square in very_central_squares:
-            piece = board.piece_at(square)
-            if piece is not None:
-                if piece.color == board.turn:
-                    if piece.piece_type == 1:
-                        # We really like pawns in the center
-                        central_score += constants["central_pawn_score"] * 1.5
-
-                    central_score += constants["central_score"]
-                elif piece.color != board.turn:
-                    if piece.piece_type == 1:
-                        central_score -= constants["central_pawn_score"]
-
-                    elif piece.piece_type in [5, 6]:
-                        central_score -= constants["central_important_piece_score"]
-
-                    central_score -= constants["central_score"] * 1.5
-
-        king_safety_score = 0
-
-        # If there are many possible checks on the next move, the other side doesn't have good king safety
-        for legal_move in board.legal_moves:
-            if board.gives_check(legal_move):
-                king_safety_score -= constants["king_safety"]
+        # Give a bonus for pieces aligning with the piece map
+        for square in chess.SQUARES:
+            if board.piece_at(square):
+                piece = board.piece_at(square)
+                if piece.color == chess.WHITE:
+                    piece_map_score += piece_maps[str(piece.piece_type)][63 - square]
+                else:
+                    piece_map_score -= piece_maps[str(piece.piece_type)][square]
 
         # Penalize for repeating moves
         repeat_score = 0
@@ -99,8 +51,6 @@ def evaluate_position(board):
             pawn_attack_score -= constants["pawn_attack_score"]
 
         if board.turn:
-            return material_balance + central_score + repeat_score + pawn_attack_score + \
-                   king_safety_score
+            return material_balance + piece_map_score + repeat_score + pawn_attack_score
         else:
-            return material_balance - (central_score + repeat_score + pawn_attack_score +
-                                       king_safety_score)
+            return material_balance + piece_map_score - (repeat_score + pawn_attack_score)
