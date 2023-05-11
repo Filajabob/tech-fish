@@ -33,9 +33,11 @@ def score_move(move, board, transposition_table, hash):
             return 0
 
 
-def order_moves(board, moves, transposition_table, hash):
+def order_moves(board, moves, transposition_table, hash, killer_moves=None, best_move=None):
     """
     Uses Most Valuable Victim - Least Valuable Aggressor, and TT move ordering
+
+    Killer moves not implemented yet.
     """
 
     scored_moves = []
@@ -44,6 +46,12 @@ def order_moves(board, moves, transposition_table, hash):
         scored_moves.append((move, score_move(move, board, transposition_table, hash)))
 
     sorted_scored_moves = sorted(scored_moves, key=lambda x: x[1], reverse=True)
-    scored_moves = [move[0] for move in scored_moves]
+    scored_moves = [move[0] for move in sorted_scored_moves]
 
-    return scored_moves
+    if best_move is None:
+        return scored_moves
+
+    if best_move in scored_moves:
+        scored_moves.remove(best_move)
+
+    return [best_move] + scored_moves

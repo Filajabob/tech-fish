@@ -27,9 +27,10 @@ killer_moves = [[None] * constants["max_depth"]] * 2
 # TODO: Fix Zobrist hashing taking too long, or remove it
 
 
-def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=False, main_search=False):
+def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=False, main_search=False, first_move=None):
     """
     A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing. Also uses Lazy SMP.
+    :param first_move: The current best move from the previous iterative deepening search, will be evaluated first
     :param main_search: If this is part of the main search
     :param thread: If the function is being called from a thread
     :param hash:
@@ -96,7 +97,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             # We are in the main thread, start helpers
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
 
-        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash)
+        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, killer_moves=killer_moves, best_move=first_move)
 
         for move in ordered_moves:
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
@@ -164,7 +165,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         if depth != 1 and not thread:
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
 
-        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash)
+        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, killer_moves=killer_moves, best_move=first_move)
 
         for move in ordered_moves:
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
@@ -269,14 +270,19 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
             'beta': None
         }
 
+    best_move = None
+
+    print("Searching...")
+
     # Iterative Deepening
     for depth in range(1, max_depth + 1):
         if print_depth:
-            print(f"\rDepth: {depth}", end='')
+            print(f"\rDepth: {depth} | Move: {board.san(chess.Move.from_uci(best_move))}", end='')
 
         alpha, beta = -float('inf'), float('inf')
         start_time = time.time()
-        search = minimax(board, depth, alpha, beta, engine_is_maximizing, main_search=True)
+        search = minimax(board, depth, alpha, beta, engine_is_maximizing, main_search=True, first_move=best_move)
+        best_move = search["best_move"]
 
         # Save the full search to the transposition table
         transposition_table.add_entry(zobrist_hash.current_hash, {
