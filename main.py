@@ -75,14 +75,8 @@ while True:
         try:
             board.push_san(san_move)
 
-        except chess.IllegalMoveError:
-            print("Illegal move!")
-            continue
-        except chess.InvalidMoveError:
-            print("Illegal move!")
-            continue
-        except chess.AmbiguousMoveError:
-            print("Ambiguous move!")
+        except Exception as e:
+            print(e)
             continue
 
         print_board(board, white)
@@ -117,14 +111,8 @@ while True:
                 board.push_san(san_move)
                 break
 
-            except chess.IllegalMoveError:
-                print("Illegal move!")
-                continue
-            except chess.InvalidMoveError:
-                print("Illegal move!")
-                continue
-            except chess.AmbiguousMoveError:
-                print("Ambiguous move!")
+            except Exception as e:
+                print(e)
                 continue
 
         print_board(board, white)

@@ -88,25 +88,6 @@ def evaluate_position(board):
             if board.move_stack[-3] == board.move_stack[-1]:
                 repeat_score += constants["repeat_score"]
 
-        # # Penalize for moving a piece twice in the opening
-        opening_repeat_score = 0
-        move_count = board.fullmove_number
-        if move_count < 10:
-            for move in board.move_stack:
-                if not board.piece_at(move.from_square):
-                    continue
-                if board.piece_at(move.from_square).piece_type not in [chess.KING, chess.QUEEN]:
-                    if board.is_capture(move) or move.promotion or move.from_square in outer_central_squares + \
-                            very_central_squares:
-                        continue
-                    if move_count < 4:
-                        if move_count == 2 and board.piece_at(move.from_square).color == chess.WHITE:
-                            continue
-                        if move_count == 3 and board.piece_at(move.from_square).color == chess.BLACK:
-                            continue
-
-                    opening_repeat_score += constants["opening_repeat_score"]
-
         # Incentivize pawn attacks
         pawn_attack_score = 0
 
@@ -118,8 +99,8 @@ def evaluate_position(board):
             pawn_attack_score -= constants["pawn_attack_score"]
 
         if board.turn:
-            return material_balance + central_score + repeat_score + pawn_attack_score + opening_repeat_score + \
+            return material_balance + central_score + repeat_score + pawn_attack_score + \
                    king_safety_score
         else:
-            return material_balance - (central_score + repeat_score + pawn_attack_score + opening_repeat_score +
+            return material_balance - (central_score + repeat_score + pawn_attack_score +
                                        king_safety_score)
