@@ -33,14 +33,15 @@ def score_move(move, board, transposition_table, hash):
             return 0
 
 
-def order_moves(board, moves, transposition_table, hash, killer_moves=None, best_move=None):
+def order_moves(board, moves, transposition_table, hash, depth, killer_moves, best_move=None):
     """
     Uses Most Valuable Victim - Least Valuable Aggressor, and TT move ordering
-
-    Killer moves not implemented yet.
     """
 
     scored_moves = []
+
+    killer_moves = killer_moves[board.turn][depth]
+    killer_moves = [*set(killer_moves)]  # Remove duplicates
 
     for move in moves:
         scored_moves.append((move, score_move(move, board, transposition_table, hash)))
@@ -48,10 +49,15 @@ def order_moves(board, moves, transposition_table, hash, killer_moves=None, best
     sorted_scored_moves = sorted(scored_moves, key=lambda x: x[1], reverse=True)
     scored_moves = [move[0] for move in sorted_scored_moves]
 
-    if best_move is None:
-        return scored_moves
+    # Ensure the scored moves and killer moves don't have a duplicate of the best move
 
     if best_move in scored_moves:
         scored_moves.remove(best_move)
 
-    return [best_move] + scored_moves
+    if best_move in killer_moves:
+        killer_moves.remove(best_move)
+
+    # Ensure there is no overlap between killer moves and regular moves
+    scored_moves = [move for move in scored_moves if move not in killer_moves]
+
+    return [move for move in [best_move] + killer_moves + scored_moves if move]

@@ -9,3 +9,4 @@ from .timeout import timeout
 from .traced_thread import TracedThread
 from .helpers import start_helpers, kill_helpers
 from .get_piece_value import get_piece_value
+from .is_quiescent import is_quiescent

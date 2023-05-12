@@ -15,7 +15,8 @@
   "transpositions_filepath": "assets/json/transpositions.json",
   "zobrist_keys_filepath": "assets/json/zobrist_keys.json",
   "max_transposition_entries": 5000000,
-  "num_helper_threads": 8,
+  "num_helper_threads": 4,
+  "quiescent_depth": 1,
   "piece_values": {
     "1": 1,
     "2": 3,
