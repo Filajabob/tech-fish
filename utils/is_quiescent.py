@@ -2,6 +2,7 @@ from .material_balance import material_balance
 
 
 def has_forcing_moves(board):
+    # TODO: Make better
     for move in board.legal_moves:
         if board.is_capture(move) or board.gives_check(move):
             return True
@@ -10,4 +11,4 @@ def has_forcing_moves(board):
 
 
 def is_quiescent(board):
-    return board.is_check() or material_balance(board) != 0 or has_forcing_moves(board)
+    return not board.is_check() and material_balance(board) != 0 and not has_forcing_moves(board)
