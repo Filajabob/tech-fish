@@ -231,7 +231,8 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         }
 
 
-def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True, print_depth=True):
+def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True,
+              update_hash=True, print_updates=True):
     # Check if we are in an endgame
     if len(board.piece_map()) <= 7:
         try:
@@ -284,7 +285,7 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
 
     # Iterative Deepening
     for depth in range(1, max_depth + 1):
-        if print_depth:
+        if print_updates:
             if best_move:
                 print(f"\rDepth: {depth} | Move: {board.san(best_move)}", end='')
             else:
@@ -309,10 +310,11 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         if time.time() - start_time >= constants["time_limit"] and best_move is not None:
             break
 
-    if print_depth:
+    if print_updates:
         print("\n")
 
-    zobrist_hash.move(board.parse_san(str(search["best_move"])), board)
+    if update_hash:
+        zobrist_hash.move(board.parse_san(str(search["best_move"])), board)
     # transposition_table.serialize(constants["transpositions_filepath"])
 
     return {

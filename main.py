@@ -4,6 +4,7 @@ import utils
 from minimax import evaluate_position, find_move
 from multiprocessing import Pool
 import cProfile
+import multiprocessing as mp
 
 board = chess.Board(fen=utils.load_constants()["starting_fen"])
 # TODO: FIX DISPLAY ISSUES: display_board = display.start()
@@ -66,7 +67,16 @@ def end_game(board):
 while True:
     if white:
         try:
+            # Start pondering
+            p = mp.Process(target=find_move, args=(board, 69, # depth is an arbitarily large number, for pondering purposes
+                                                         utils.load_constants()["time_limit"]),
+                                 kwargs={"allow_book": False, "engine_is_maximizing": white,
+                                         "print_updates": False})
+            p.start()
             san_move = input("Move: ")
+
+            p.terminate()
+            p.join()
         except KeyboardInterrupt:
             print(utils.generate_pgn(board))
             print(board.fen())
@@ -102,7 +112,16 @@ while True:
 
         while True:
             try:
+                # Start pondering
+                p = mp.Process(target=find_move, args=(board, 69,
+                                                       utils.load_constants()["time_limit"]),
+                               kwargs={"allow_book": False, "engine_is_maximizing": white,
+                                       "print_updates": False})
+                p.start()
                 san_move = input("Move: ")
+
+                p.terminate()
+                p.join()
             except KeyboardInterrupt:
                 print(utils.generate_pgn(board))
                 break

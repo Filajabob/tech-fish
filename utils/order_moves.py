@@ -20,7 +20,9 @@ def score_move(move, board, transposition_table, hash):
         score = get_piece_value(aggressor) - get_piece_value(victim)
 
         see_score = see_capture(move, board)
-        score += see_score
+
+        if see_score:
+            score += see_score
 
         return score
     else:

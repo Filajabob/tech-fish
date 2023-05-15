@@ -33,24 +33,21 @@ def evaluate_position(board):
                 else:
                     piece_map_score -= piece_maps[str(piece.piece_type)][square]
 
-        # Penalize for repeating moves
-        repeat_score = 0
+        # # Penalize for repeating moves
+        # repeat_score = 0
+        #
+        # if len(board.move_stack) >= 3:
+        #     if board.move_stack[-3] == board.move_stack[-1]:
+        #         repeat_score += constants["repeat_score"]
 
-        if len(board.move_stack) >= 3:
-            if board.move_stack[-3] == board.move_stack[-1]:
-                repeat_score += constants["repeat_score"]
+        # # Incentivize pawn attacks
+        # pawn_attack_score = 0
+        #
+        # # This means a pawn has taken something in the previous move, which is probably bad for us
+        # prev_move = board.move_stack[-1]
+        # if prev_move.drop == 1 and \
+        #         chess.square_file(prev_move.from_square) != chess.square_file(
+        #         prev_move.to_square):
+        #     pawn_attack_score -= constants["pawn_attack_score"]
 
-        # Incentivize pawn attacks
-        pawn_attack_score = 0
-
-        # This means a pawn has taken something in the previous move, which is probably bad for us
-        prev_move = board.move_stack[-1]
-        if prev_move.drop == 1 and \
-                chess.square_file(prev_move.from_square) != chess.square_file(
-                prev_move.to_square):
-            pawn_attack_score -= constants["pawn_attack_score"]
-
-        if board.turn:
-            return material_balance + piece_map_score + repeat_score + pawn_attack_score
-        else:
-            return material_balance + piece_map_score - (repeat_score + pawn_attack_score)
+        return material_balance + piece_map_score
