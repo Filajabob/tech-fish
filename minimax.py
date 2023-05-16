@@ -93,6 +93,8 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             'beta': beta
         }
 
+    # Null move pruning
+
     if allow_null and not board.is_check() and depth - 1 - constants["R"] > 0:
         null_move = chess.Move.null()
 
@@ -109,6 +111,20 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         if score >= beta:
             return search
 
+    # Futility Pruning
+
+    if depth == 1 and not board.is_check() and alpha != float("inf") and beta != float("-inf"):
+        if not evaluate_position(board) + constants["piece_values"]["5"] > alpha:
+            # evaluate captures and checks
+            moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
+        else:
+            moves = board.legal_moves
+    else:
+        moves = board.legal_moves
+
+    ordered_moves = utils.order_moves(board, moves, transposition_table, hash, depth,
+                                      killer_moves=killer_moves, best_move=first_move)
+
     if is_maximizing:
         # Find best move for the maximizing player (white)
         max_score = float('-inf')  # Currently, the best score that can be achieved
@@ -117,9 +133,6 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         if not thread and allow_threads:
             # We are in the main thread, start helpers
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
-
-        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, depth,
-                                          killer_moves=killer_moves, best_move=first_move)
 
         for move in ordered_moves:
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
@@ -187,9 +200,6 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         # Start helpers if depth is not 1 and helpers are allowed
         if not thread and allow_threads:
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
-
-        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, depth,
-                                          killer_moves=killer_moves, best_move=first_move)
 
         for move in ordered_moves:
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
