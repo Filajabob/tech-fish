@@ -136,9 +136,10 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
 
         for i, move in enumerate(ordered_moves):
             search_depth = depth - 1
-            if i > constants["lmr_sampling"] - 1:
+            if i > constants["lmr_sampling"] - 1 and not board.is_capture(move) and not board.gives_check(move) \
+                    and not board.is_check() and not depth < constants["min_depth_lmr"] and not move.promotion:
                 search_depth -= constants["reduction"]
-                search_depth = max(search_depth, 0)
+                search_depth = max(search_depth, constants["min_reduction_depth"])
 
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
@@ -208,9 +209,10 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
 
         for i, move in enumerate(ordered_moves):
             search_depth = depth - 1
-            if i > constants["lmr_sampling"] - 1:
+            if i > constants["lmr_sampling"] - 1 and not board.is_capture(move) and not board.gives_check(move) \
+                    and not board.is_check() and not depth < constants["min_depth_lmr"] and not move.promotion:
                 search_depth -= constants["reduction"]
-                search_depth = max(search_depth, 0)
+                search_depth = max(search_depth, constants["min_reduction_depth"])
 
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)

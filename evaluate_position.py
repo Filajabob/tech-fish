@@ -33,12 +33,12 @@ def evaluate_position(board):
                 else:
                     piece_map_score -= piece_maps[str(piece.piece_type)][square]
 
-        # # Penalize for repeating moves
-        # repeat_score = 0
-        #
-        # if len(board.move_stack) >= 3:
-        #     if board.move_stack[-3] == board.move_stack[-1]:
-        #         repeat_score += constants["repeat_score"]
+        # Penalize for repeating moves
+        repeat_score = 0
+
+        if len(board.move_stack) >= 3:
+            if board.move_stack[-3] == board.move_stack[-1]:
+                repeat_score += constants["repeat_score"]
 
         # # Incentivize pawn attacks
         # pawn_attack_score = 0
