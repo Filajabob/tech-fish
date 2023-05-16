@@ -21,6 +21,9 @@ def see(board, square):
 
     if piece:
         captured_piece = board.piece_at(square)
+
+        if not captured_piece: return
+
         board.push(chess.Move(piece, square))
         value = max(0, get_piece_value(captured_piece) - see(board, square))
         board.pop()

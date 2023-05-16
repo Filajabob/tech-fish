@@ -1,7 +1,7 @@
 {
   "starting_fen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-  "max_depth": 3,
-  "time_limit": 5,
+  "max_depth": 4,
+  "time_limit": 2,
   "space_value": 0.07,
   "king_safety": -0.017,
   "central_score": 0.2,
@@ -18,6 +18,8 @@
   "num_helper_threads": 2,
   "quiescent_depth": 1,
   "R": 2,
+  "reduction": 1,
+  "lmr_sampling": 3,
   "piece_values": {
     "1": 1,
     "2": 3,

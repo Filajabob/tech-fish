@@ -114,7 +114,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
     # Futility Pruning
 
     if depth == 1 and not board.is_check() and alpha != float("inf") and beta != float("-inf"):
-        if not evaluate_position(board) + constants["piece_values"]["5"] > alpha:
+        if not evaluate_position(board) + constants["piece_values"]["4"] > alpha:
             # evaluate captures and checks
             moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
         else:
@@ -134,11 +134,16 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             # We are in the main thread, start helpers
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
 
-        for move in ordered_moves:
+        for i, move in enumerate(ordered_moves):
+            search_depth = depth - 1
+            if i > constants["lmr_sampling"] - 1:
+                search_depth -= constants["reduction"]
+                search_depth = max(search_depth, 0)
+
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
-            search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash, thread or not main_search,
+            search = minimax(board, search_depth, alpha, beta, not is_maximizing, hash, thread or not main_search,
                              main_search=main_search)
 
             board.pop()
@@ -201,11 +206,16 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         if not thread and allow_threads:
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
 
-        for move in ordered_moves:
+        for i, move in enumerate(ordered_moves):
+            search_depth = depth - 1
+            if i > constants["lmr_sampling"] - 1:
+                search_depth -= constants["reduction"]
+                search_depth = max(search_depth, 0)
+
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            search = minimax(board, depth - 1, alpha, beta, not is_maximizing, thread=thread or not main_search,
+            search = minimax(board, search_depth, alpha, beta, not is_maximizing, thread=thread or not main_search,
                              main_search=main_search)
 
             board.pop()
