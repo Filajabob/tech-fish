@@ -31,7 +31,8 @@ killer_moves = {
 # TODO: Fix Zobrist hashing taking too long, or remove it
 
 
-def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=False, main_search=False, first_move=None):
+def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=False, main_search=False,
+            first_move=None, allow_null=True, allow_threads=True):
     """
     A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing. Also uses Lazy SMP.
     :param first_move: The current best move from the previous iterative deepening search, will be evaluated first
@@ -92,12 +93,28 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             'beta': beta
         }
 
+    if allow_null and not board.is_check() and depth - 1 - constants["R"] > 0:
+        null_move = chess.Move.null()
+
+        hash.move(null_move, board)
+        board.push(null_move)
+
+        search = minimax(board, depth - 1 - constants["R"], -beta, -beta + 1, not is_maximizing, hash,
+                         allow_null=False, allow_threads=False)
+        score = -search["score"]
+
+        board.pop()
+        hash.pop(null_move, board)
+
+        if score >= beta:
+            return search
+
     if is_maximizing:
         # Find best move for the maximizing player (white)
         max_score = float('-inf')  # Currently, the best score that can be achieved
         best_move = None  # The best move
 
-        if not thread:
+        if not thread and allow_threads:
             # We are in the main thread, start helpers
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
 
@@ -108,10 +125,11 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
-            search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash, thread or not main_search, main_search=main_search)
+            search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash, thread or not main_search,
+                             main_search=main_search)
 
             board.pop()
-            zobrist_hash.pop(move, board)
+            hash.pop(move, board)
 
             if search is None and not main_search:
                 return
@@ -167,7 +185,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         best_move = None
 
         # Start helpers if depth is not 1 and helpers are allowed
-        if depth != 1 and not thread:
+        if not thread and allow_threads:
             utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
 
         ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, depth,
@@ -177,10 +195,11 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            search = minimax(board, depth - 1, alpha, beta, not is_maximizing, thread=thread or not main_search, main_search=main_search)
+            search = minimax(board, depth - 1, alpha, beta, not is_maximizing, thread=thread or not main_search,
+                             main_search=main_search)
 
             board.pop()
-            zobrist_hash.pop(move, board)
+            hash.pop(move, board)
 
             if search is None and not main_search:
                 return
@@ -233,6 +252,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
 
 def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True,
               update_hash=True, print_updates=True):
+    clean_board = board
+    board = copy.deepcopy(board)
+
     # Check if we are in an endgame
     if len(board.piece_map()) <= 7:
         try:
@@ -283,38 +305,42 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
 
     starting_board = copy.copy(board)
 
-    # Iterative Deepening
-    for depth in range(1, max_depth + 1):
-        if print_updates:
-            if best_move:
-                print(f"\rDepth: {depth} | Move: {board.san(best_move)}", end='')
-            else:
-                print(f"\rDepth: {depth}", end='')
+    try:
+        # Iterative Deepening
+        for depth in range(1, max_depth + 1):
+            if print_updates:
+                if best_move:
+                    print(f"\rDepth: {depth} | Move: {board.san(best_move)}", end='')
+                else:
+                    print(f"\rDepth: {depth}", end='')
 
-        alpha, beta = -float('inf'), float('inf')
-        start_time = time.time()
-        search = minimax(board, depth, alpha, beta, engine_is_maximizing, main_search=True, first_move=best_move)
-        best_move = search["best_move"]
+            alpha, beta = -float('inf'), float('inf')
+            start_time = time.time()
+            search = minimax(board, depth, alpha, beta, engine_is_maximizing, main_search=True, first_move=best_move)
+            best_move = search["best_move"]
 
-        # Save the full search to the transposition table
-        transposition_table.add_entry(zobrist_hash.current_hash, {
-            'score': search["score"],
-            'best_move': search["best_move"],
-            'depth': depth,
-            "type": "exact",
-            'alpha': alpha,
-            'beta': beta
-        })
+            # Save the full search to the transposition table
+            transposition_table.add_entry(zobrist_hash.current_hash, {
+                'score': search["score"],
+                'best_move': search["best_move"],
+                'depth': depth,
+                "type": "exact",
+                'alpha': alpha,
+                'beta': beta
+            })
 
-        # Abort when time limit is exceeded
-        if time.time() - start_time >= constants["time_limit"] and best_move is not None:
-            break
+            # Abort when time limit is exceeded
+            if time.time() - start_time >= constants["time_limit"] and best_move is not None:
+                break
+
+    except KeyboardInterrupt as e:
+        raise e  # TODO: allow aborting
 
     if print_updates:
         print("\n")
 
     if update_hash:
-        zobrist_hash.move(board.parse_san(str(search["best_move"])), board)
+        zobrist_hash.move(clean_board.parse_san(str(search["best_move"])), board)
     # transposition_table.serialize(constants["transpositions_filepath"])
 
     return {
