@@ -68,7 +68,8 @@ while True:
     if white:
         try:
             # Start pondering
-            p = mp.Process(target=find_move, args=(board, 69, # depth is an arbitarily large number, for pondering purposes
+            p = mp.Process(target=find_move, args=(board, 69, # depth is an arbitarily large number, for pondering
+                                                   # purposes
                                                          utils.load_constants()["time_limit"]),
                                  kwargs={"allow_book": False, "engine_is_maximizing": white,
                                          "print_updates": False})
@@ -112,16 +113,19 @@ while True:
 
         while True:
             try:
-                # Start pondering
-                p = mp.Process(target=find_move, args=(board, 69,
+                if __name__ == '__main__':
+                    # Start pondering
+                    p = mp.Process(target=find_move, args=(board, 69,
                                                        utils.load_constants()["time_limit"]),
                                kwargs={"allow_book": False, "engine_is_maximizing": white,
                                        "print_updates": False})
-                p.start()
+                    p.start()
+
                 san_move = input("Move: ")
 
-                p.terminate()
-                p.join()
+                if __name__ == '__main__':
+                    p.terminate()
+                    p.join()
             except KeyboardInterrupt:
                 print(utils.generate_pgn(board))
                 break
