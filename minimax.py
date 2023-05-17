@@ -104,11 +104,18 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, depth,
                                           killer_moves=killer_moves, best_move=first_move)
 
-        for move in ordered_moves:
+        for i, move in enumerate(ordered_moves):
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
-            search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash, thread or not main_search, main_search=main_search)
+            if i > constants["lmr_sample"] - 1 and not board.is_capture(move) and not board.gives_check(move) and \
+                    not board.is_check() and depth - 1 - constants["lmr_reduction"] > 0:
+                search = minimax(board, depth - 1 - constants["lmr_reduction"], alpha, beta, not is_maximizing, hash,
+                                 thread or not main_search,
+                                 main_search=main_search)
+            else:
+                search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash, thread or not main_search,
+                                 main_search=main_search)
 
             board.pop()
             zobrist_hash.pop(move, board)
@@ -173,11 +180,18 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, depth,
                                           killer_moves=killer_moves, best_move=first_move)
 
-        for move in ordered_moves:
+        for i, move in enumerate(ordered_moves):
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            search = minimax(board, depth - 1, alpha, beta, not is_maximizing, thread=thread or not main_search, main_search=main_search)
+            if i > constants["lmr_sample"] - 1 and not board.is_capture(move) and not board.gives_check(move) and \
+                    not board.is_check() and depth - 1 - constants["lmr_reduction"] > 0:
+                search = minimax(board, depth - 1 - constants["lmr_reduction"], alpha, beta, not is_maximizing, hash,
+                                 thread or not main_search,
+                                 main_search=main_search)
+            else:
+                search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash, thread or not main_search,
+                                 main_search=main_search)
 
             board.pop()
             zobrist_hash.pop(move, board)
