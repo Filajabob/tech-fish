@@ -23,21 +23,19 @@ zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 abort_flag = threading.Event()
 
 killer_moves = {
-    chess.WHITE: [[]] * 30,
-    chess.BLACK: [[]] * 30
+    chess.WHITE: [[] for _ in range(30)],
+    chess.BLACK: [[] for _ in range(30)]
 }
 
 
 # TODO: Fix Zobrist hashing taking too long, or remove it
 
 
-def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=False, main_search=False,
-            first_move=None, allow_null=True, allow_threads=True):
+def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_move=None, allow_null=True):
     """
     A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing. Also uses Lazy SMP.
+    :param allow_null:
     :param first_move: The current best move from the previous iterative deepening search, will be evaluated first
-    :param main_search: If this is part of the main search
-    :param thread: If the function is being called from a thread
     :param hash:
     :param board:
     :param depth:
@@ -101,8 +99,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         hash.move(null_move, board)
         board.push(null_move)
 
-        search = minimax(board, depth - 1 - constants["R"], -beta, -beta + 1, not is_maximizing, hash,
-                         allow_null=False, allow_threads=False)
+        search = minimax(board, depth - 1 - constants["R"], -beta, -beta + 1, not is_maximizing, hash,allow_null=False)
         score = -search["score"]
 
         board.pop()
@@ -113,12 +110,10 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
 
     # Futility Pruning
 
-    if depth == 1 and not board.is_check() and alpha != float("inf") and beta != float("-inf"):
-        if not evaluate_position(board) + constants["piece_values"]["4"] > alpha:
-            # evaluate captures and checks
-            moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
-        else:
-            moves = board.legal_moves
+    if depth == 1 and not board.is_check() and alpha != float("inf") and beta != float("-inf") and \
+            not evaluate_position(board) + constants["piece_values"]["5"] > alpha \
+            and next(iter(board.legal_moves), None):
+        moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
     else:
         moves = board.legal_moves
 
@@ -130,10 +125,6 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         max_score = float('-inf')  # Currently, the best score that can be achieved
         best_move = None  # The best move
 
-        if not thread and allow_threads:
-            # We are in the main thread, start helpers
-            utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
-
         for i, move in enumerate(ordered_moves):
             search_depth = depth - 1
             if i > constants["lmr_sampling"] - 1 and not board.is_capture(move) and not board.gives_check(move) \
@@ -144,16 +135,10 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
-            search = minimax(board, search_depth, alpha, beta, not is_maximizing, hash, thread or not main_search,
-                             main_search=main_search)
+            search = minimax(board, search_depth, alpha, beta, not is_maximizing, hash)
 
             board.pop()
             hash.pop(move, board)
-
-            if search is None and not main_search:
-                return
-            elif search is None and main_search:
-                continue
 
             score = search["score"]
 
@@ -168,9 +153,6 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
 
             if alpha >= beta:
                 break
-
-            if abort_flag.is_set() and not main_search:
-                return
 
         if max_score <= initial_alpha:
             type = "lowerbound"
@@ -203,10 +185,6 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
         min_score = float('inf')
         best_move = None
 
-        # Start helpers if depth is not 1 and helpers are allowed
-        if not thread and allow_threads:
-            utils.start_helpers(abort_flag, board, depth, alpha, beta, is_maximizing, hash)
-
         for i, move in enumerate(ordered_moves):
             search_depth = depth - 1
             if i > constants["lmr_sampling"] - 1 and not board.is_capture(move) and not board.gives_check(move) \
@@ -217,16 +195,10 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            search = minimax(board, search_depth, alpha, beta, not is_maximizing, thread=thread or not main_search,
-                             main_search=main_search)
+            search = minimax(board, search_depth, alpha, beta, not is_maximizing)
 
             board.pop()
             hash.pop(move, board)
-
-            if search is None and not main_search:
-                return
-            elif search is None and main_search:
-                continue
 
             score = search["score"]
 
@@ -241,9 +213,6 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, thread=
 
             if beta <= alpha:
                 break
-
-            if abort_flag.is_set() and not main_search:
-                return
 
         if min_score <= initial_alpha:
             type = "lowerbound"
@@ -338,7 +307,7 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
 
             alpha, beta = -float('inf'), float('inf')
             start_time = time.time()
-            search = minimax(board, depth, alpha, beta, engine_is_maximizing, main_search=True, first_move=best_move)
+            search = minimax(board, depth, alpha, beta, engine_is_maximizing, first_move=best_move)
             best_move = search["best_move"]
 
             # Save the full search to the transposition table
