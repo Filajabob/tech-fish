@@ -20,6 +20,7 @@
   "lmr_sample": 4,
   "lmr_reduction": 1,
   "R": 2,
+  "square_control": 0.1,
   "piece_values": {
     "1": 1,
     "2": 3,

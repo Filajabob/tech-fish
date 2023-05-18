@@ -304,7 +304,7 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
 
             alpha, beta = -float('inf'), float('inf')
             start_time = time.time()
-            search = minimax(board, depth, alpha, beta, engine_is_maximizing, first_move=best_move)
+            search = minimax(board, depth, alpha, beta, engine_is_maximizing)
             best_move = search["best_move"]
 
             # Save the full search to the transposition table

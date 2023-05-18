@@ -5,10 +5,11 @@ from minimax import find_move
 import cProfile
 import multiprocessing as mp
 
-board = chess.Board(fen=utils.load_constants()["starting_fen"])
+if __name__ == '__main__':
+    board = chess.Board(fen=utils.load_constants()["starting_fen"])
 
-white = input("Color (W/b) ") == "W"
-inverse = input("Inverse board? (Y/n) ") == "Y"
+    white = input("Color (W/b) ") == "W"
+    inverse = input("Inverse board? (Y/n) ") == "Y"
 
 
 def print_board(board, is_white):

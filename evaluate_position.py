@@ -40,14 +40,4 @@ def evaluate_position(board):
             if board.move_stack[-3] == board.move_stack[-1]:
                 repeat_score += constants["repeat_score"]
 
-        # # Incentivize pawn attacks
-        # pawn_attack_score = 0
-        #
-        # # This means a pawn has taken something in the previous move, which is probably bad for us
-        # prev_move = board.move_stack[-1]
-        # if prev_move.drop == 1 and \
-        #         chess.square_file(prev_move.from_square) != chess.square_file(
-        #         prev_move.to_square):
-        #     pawn_attack_score -= constants["pawn_attack_score"]
-
         return material_balance + piece_map_score
