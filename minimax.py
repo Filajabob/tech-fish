@@ -89,31 +89,49 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             'beta': beta
         }
 
-    if allow_null and not board.is_check():
-        move = chess.Move.null()
+    # Futility pruning
+    if depth == 1:
+        if not evaluate_position(board) + constants["piece_values"]["2"] > alpha and not board.is_check() \
+                and not utils.is_generator_empty(board.legal_moves):
+            # Unlikely to raise alpha, search captures and checks
+            moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
 
-        hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
-        board.push(move)  # Try the move
+        elif utils.is_generator_empty(board.legal_moves):
+            return {
+                "score": alpha,
+                "best_move": None,
+                "depth": depth,
+                'alpha': alpha,
+                'beta': beta
+            }
+        else:
+            moves = board.legal_moves
+    elif depth == 2:
+        if not evaluate_position(board) + constants["piece_values"]["4"] > alpha and not board.is_check() \
+                and not utils.is_generator_empty(board.legal_moves):
+            # Unlikely to raise alpha, search captures and checks
+            moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
 
-        eval = minimax(board, max(depth - 1 - constants["R"], 1), -beta, -beta + 1, not is_maximizing, hash,
-                       allow_null=False)
-        score = -eval["score"]
+        elif utils.is_generator_empty(board.legal_moves):
+            return {
+                "score": alpha,
+                "best_move": None,
+                "depth": depth,
+                'alpha': alpha,
+                'beta': beta
+            }
+        else:
+            moves = board.legal_moves
 
-        board.pop()
-        zobrist_hash.pop(move, board)
+    else:
+        moves = board.legal_moves
 
-        eval["score"] = -eval["score"]
-
-        if score >= beta:
-            return eval
+    ordered_moves = utils.order_moves(board, moves, transposition_table, hash, depth, killer_moves, first_move)
 
     if is_maximizing:
         # Find best move for the maximizing player (white)
         max_score = float('-inf')  # Currently, the best score that can be achieved
         best_move = None  # The best move
-
-        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, depth,
-                                          killer_moves=killer_moves, best_move=first_move)
 
         for i, move in enumerate(ordered_moves):
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
@@ -172,9 +190,6 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         # Find best move for minimizing player (black)
         min_score = float('inf')
         best_move = None
-
-        ordered_moves = utils.order_moves(board, board.legal_moves, transposition_table, hash, depth,
-                                          killer_moves=killer_moves, best_move=first_move)
 
         for i, move in enumerate(ordered_moves):
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
