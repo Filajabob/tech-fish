@@ -12,24 +12,15 @@ If you think you are super cool, you can fiddle with the numbers in `assets/json
 
 TechFish requires a minimum of Python 3.10 (as determined by [Vermin](https://github.com/netromdk/vermin)) on your machine. TechFish has been tested on Windows 10 only.
 
-Optionally, having Git on your computer would be a massive help.
-
 ### Getting TechFish onto your computer
 
-#### Using Git
-
-1. On your command line, run `git clone https://github.com/Filajabob/tech-fish`
-2. Navigate to the cloned repository.
-
-#### Download ZIP
-
-1. On the main GitHub page, click Code > Download ZIP.
-2. Navigate to the downloaded ZIP.
-3. Extract the ZIP folder.
+1. On the main GitHub project page, navigate to Releases > (Latest) > Assets> Source Code
+2. Navigate to the downloaded ZIP / TAR.
+3. Extract the folder.
 
 ### Python requirements
 
-Because I'm such a cool guy, simply navigate to the directory, and run `pip install -r requirements.txt`
+Because I'm such a cool guy, simply navigate to the directory in the command line, and run `pip install -r requirements.txt`
 
 ### And...
 
