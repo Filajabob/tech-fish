@@ -13,7 +13,6 @@ from evaluate_position import evaluate_position
 from quiescence_search import quiescence_search
 
 constants = utils.load_constants()
-# transposition_table = TranspositionTable.load(constants["transpositions_filepath"])
 transposition_table = TranspositionTable()
 
 zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
@@ -26,17 +25,10 @@ killer_moves = {
 }
 
 
-# TODO: Fix Zobrist hashing taking too long, or remove it
-
-
 def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_move=None, allow_null=True):
     """
     A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing. Also uses Lazy SMP.
-<<<<<<< HEAD
     :param allow_null: Allow null pruning?
-=======
-    :param allow_null:
->>>>>>> master
     :param first_move: The current best move from the previous iterative deepening search, will be evaluated first
     :param hash:
     :param board:
@@ -276,7 +268,6 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
     board_pgn = utils.generate_pgn(board)
 
     if board_pgn in combined and allow_book:
-        book = True
         continuations = []
 
         # We are in a book position, find a continuation
@@ -301,8 +292,6 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
     best_move = None
 
     print("Searching...")
-
-    starting_board = copy.copy(board)
 
     try:
         # Iterative Deepening
@@ -340,7 +329,6 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
 
     if update_hash:
         zobrist_hash.move(clean_board.parse_san(str(search["best_move"])), board)
-    # transposition_table.serialize(constants["transpositions_filepath"])
 
     return {
         "move": str(search["best_move"]),

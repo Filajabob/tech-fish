@@ -1,13 +1,11 @@
 import time
 import chess
 import utils
-from minimax import evaluate_position, find_move
-from multiprocessing import Pool
+from minimax import find_move
 import cProfile
 import multiprocessing as mp
 
 board = chess.Board(fen=utils.load_constants()["starting_fen"])
-# TODO: FIX DISPLAY ISSUES: display_board = display.start()
 
 white = input("Color (W/b) ") == "W"
 inverse = input("Inverse board? (Y/n) ") == "Y"

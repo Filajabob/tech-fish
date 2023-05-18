@@ -1,7 +1,7 @@
 import chess
 from .load_constants import load_constants
 from .get_piece_value import get_piece_value
-from .see import see, see_capture
+from .see import see_capture
 
 constants = load_constants()
 
