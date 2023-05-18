@@ -40,10 +40,6 @@ def score_move(move, board, transposition_table, hash):
 
 
 def order_moves(board, moves, transposition_table, hash, depth, killer_moves, best_move=None):
-    """
-    Uses Most Valuable Victim - Least Valuable Aggressor, and TT move ordering
-    """
-
     scored_moves = []
 
     killer_moves = killer_moves[board.turn][depth]
@@ -56,14 +52,12 @@ def order_moves(board, moves, transposition_table, hash, depth, killer_moves, be
     scored_moves = [move[0] for move in sorted_scored_moves]
 
     # Ensure the scored moves and killer moves don't have a duplicate of the best move
+    scored_moves = [move for move in scored_moves if move != best_move]
 
-    if best_move in scored_moves:
-        scored_moves.remove(best_move)
-
-    if best_move in killer_moves:
-        killer_moves.remove(best_move)
+    if best_move is not None:
+        scored_moves.insert(0, best_move)  # Insert the best move at the beginning
 
     # Ensure there is no overlap between killer moves and regular moves
     scored_moves = [move for move in scored_moves if move not in killer_moves]
 
-    return [move for move in [best_move] + killer_moves + scored_moves if move]
+    return scored_moves

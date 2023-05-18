@@ -54,8 +54,12 @@ class ZobristHash:
 
     def move(self, move, board):
         if not move:
+<<<<<<< HEAD
             # Null move, switch turn
 
+=======
+            # Move is null, switch the turn
+>>>>>>> master
             if not board.turn:
                 # Update the hash to include who's turn it is
                 self.current_hash ^= self.zobrist_array["-1"]

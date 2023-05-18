@@ -21,8 +21,8 @@ zobrist_hash = utils.ZobristHash(chess.Board(constants["starting_fen"]))
 abort_flag = threading.Event()
 
 killer_moves = {
-    chess.WHITE: [[]] * 30,
-    chess.BLACK: [[]] * 30
+    chess.WHITE: [[] for _ in range(30)],
+    chess.BLACK: [[] for _ in range(30)]
 }
 
 
@@ -32,7 +32,11 @@ killer_moves = {
 def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_move=None, allow_null=True):
     """
     A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing. Also uses Lazy SMP.
+<<<<<<< HEAD
     :param allow_null: Allow null pruning?
+=======
+    :param allow_null:
+>>>>>>> master
     :param first_move: The current best move from the previous iterative deepening search, will be evaluated first
     :param hash:
     :param board:
@@ -247,6 +251,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
 
 def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True,
               update_hash=True, print_updates=True):
+    clean_board = board
+    board = copy.deepcopy(board)
+
     # Check if we are in an endgame
     if len(board.piece_map()) <= 7:
         try:
@@ -297,38 +304,42 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
 
     starting_board = copy.copy(board)
 
-    # Iterative Deepening
-    for depth in range(1, max_depth + 1):
-        if print_updates:
-            if best_move:
-                print(f"\rDepth: {depth} | Move: {board.san(best_move)}", end='')
-            else:
-                print(f"\rDepth: {depth}", end='')
+    try:
+        # Iterative Deepening
+        for depth in range(1, max_depth + 1):
+            if print_updates:
+                if best_move:
+                    print(f"\rDepth: {depth} | Move: {board.san(best_move)}", end='')
+                else:
+                    print(f"\rDepth: {depth}", end='')
 
-        alpha, beta = -float('inf'), float('inf')
-        start_time = time.time()
-        search = minimax(board, depth, alpha, beta, engine_is_maximizing, first_move=best_move)
-        best_move = search["best_move"]
+            alpha, beta = -float('inf'), float('inf')
+            start_time = time.time()
+            search = minimax(board, depth, alpha, beta, engine_is_maximizing, first_move=best_move)
+            best_move = search["best_move"]
 
-        # Save the full search to the transposition table
-        transposition_table.add_entry(zobrist_hash.current_hash, {
-            'score': search["score"],
-            'best_move': search["best_move"],
-            'depth': depth,
-            "type": "exact",
-            'alpha': alpha,
-            'beta': beta
-        })
+            # Save the full search to the transposition table
+            transposition_table.add_entry(zobrist_hash.current_hash, {
+                'score': search["score"],
+                'best_move': search["best_move"],
+                'depth': depth,
+                "type": "exact",
+                'alpha': alpha,
+                'beta': beta
+            })
 
-        # Abort when time limit is exceeded
-        if time.time() - start_time >= constants["time_limit"] and best_move is not None:
-            break
+            # Abort when time limit is exceeded
+            if time.time() - start_time >= constants["time_limit"] and best_move is not None:
+                break
+
+    except KeyboardInterrupt as e:
+        raise e  # TODO: allow aborting
 
     if print_updates:
         print("\n")
 
     if update_hash:
-        zobrist_hash.move(board.parse_san(str(search["best_move"])), board)
+        zobrist_hash.move(clean_board.parse_san(str(search["best_move"])), board)
     # transposition_table.serialize(constants["transpositions_filepath"])
 
     return {
