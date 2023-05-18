@@ -3,10 +3,8 @@ import time
 import re
 import threading
 import copy
-import traceback
 
 import chess
-import psutil
 
 import utils
 from errors import *
@@ -34,7 +32,11 @@ killer_moves = {
 def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_move=None, allow_null=True):
     """
     A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing. Also uses Lazy SMP.
+<<<<<<< HEAD
+    :param allow_null: Allow null pruning?
+=======
     :param allow_null:
+>>>>>>> master
     :param first_move: The current best move from the previous iterative deepening search, will be evaluated first
     :param hash:
     :param board:
@@ -91,34 +93,44 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             'beta': beta
         }
 
-    # Null move pruning
+    # Futility pruning
+    if depth == 1:
+        if not evaluate_position(board) + constants["piece_values"]["2"] > alpha and not board.is_check() \
+                and not utils.is_generator_empty(board.legal_moves):
+            # Unlikely to raise alpha, search captures and checks
+            moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
 
-    if allow_null and not board.is_check() and depth - 1 - constants["R"] > 0:
-        null_move = chess.Move.null()
+        elif utils.is_generator_empty(board.legal_moves):
+            return {
+                "score": alpha,
+                "best_move": None,
+                "depth": depth,
+                'alpha': alpha,
+                'beta': beta
+            }
+        else:
+            moves = board.legal_moves
+    elif depth == 2:
+        if not evaluate_position(board) + constants["piece_values"]["4"] > alpha and not board.is_check() \
+                and not utils.is_generator_empty(board.legal_moves):
+            # Unlikely to raise alpha, search captures and checks
+            moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
 
-        hash.move(null_move, board)
-        board.push(null_move)
+        elif utils.is_generator_empty(board.legal_moves):
+            return {
+                "score": alpha,
+                "best_move": None,
+                "depth": depth,
+                'alpha': alpha,
+                'beta': beta
+            }
+        else:
+            moves = board.legal_moves
 
-        search = minimax(board, depth - 1 - constants["R"], -beta, -beta + 1, not is_maximizing, hash,allow_null=False)
-        score = -search["score"]
-
-        board.pop()
-        hash.pop(null_move, board)
-
-        if score >= beta:
-            return search
-
-    # Futility Pruning
-
-    if depth == 1 and not board.is_check() and alpha != float("inf") and beta != float("-inf") and \
-            not evaluate_position(board) + constants["piece_values"]["5"] > alpha \
-            and next(iter(board.legal_moves), None):
-        moves = [move for move in board.legal_moves if board.is_capture(move) or board.gives_check(move)]
     else:
         moves = board.legal_moves
 
-    ordered_moves = utils.order_moves(board, moves, transposition_table, hash, depth,
-                                      killer_moves=killer_moves, best_move=first_move)
+    ordered_moves = utils.order_moves(board, moves, transposition_table, hash, depth, killer_moves, first_move)
 
     if is_maximizing:
         # Find best move for the maximizing player (white)
@@ -126,19 +138,17 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         best_move = None  # The best move
 
         for i, move in enumerate(ordered_moves):
-            search_depth = depth - 1
-            if i > constants["lmr_sampling"] - 1 and not board.is_capture(move) and not board.gives_check(move) \
-                    and not board.is_check() and not depth < constants["min_depth_lmr"] and not move.promotion:
-                search_depth -= constants["reduction"]
-                search_depth = max(search_depth, constants["min_reduction_depth"])
-
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
-            search = minimax(board, search_depth, alpha, beta, not is_maximizing, hash)
+            if i > constants["lmr_sample"] - 1 and not board.is_capture(move) and not board.gives_check(move) and \
+                    not board.is_check() and depth - 1 - constants["lmr_reduction"] > 0:
+                search = minimax(board, depth - 1 - constants["lmr_reduction"], alpha, beta, not is_maximizing, hash)
+            else:
+                search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash)
 
             board.pop()
-            hash.pop(move, board)
+            zobrist_hash.pop(move, board)
 
             score = search["score"]
 
@@ -186,19 +196,17 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         best_move = None
 
         for i, move in enumerate(ordered_moves):
-            search_depth = depth - 1
-            if i > constants["lmr_sampling"] - 1 and not board.is_capture(move) and not board.gives_check(move) \
-                    and not board.is_check() and not depth < constants["min_depth_lmr"] and not move.promotion:
-                search_depth -= constants["reduction"]
-                search_depth = max(search_depth, constants["min_reduction_depth"])
-
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
-            search = minimax(board, search_depth, alpha, beta, not is_maximizing)
+            if i > constants["lmr_sample"] - 1 and not board.is_capture(move) and not board.gives_check(move) and \
+                    not board.is_check() and depth - 1 - constants["lmr_reduction"] > 0:
+                search = minimax(board, depth - 1 - constants["lmr_reduction"], alpha, beta, not is_maximizing, hash)
+            else:
+                search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash)
 
             board.pop()
-            hash.pop(move, board)
+            zobrist_hash.pop(move, board)
 
             score = search["score"]
 
