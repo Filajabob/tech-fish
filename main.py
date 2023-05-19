@@ -9,6 +9,7 @@ import multiprocessing.popen_spawn_win32 as forking
 import os
 import sys
 
+
 # https://stackoverflow.com/a/27694505
 # This is necessary to build the EXE.
 
@@ -31,8 +32,10 @@ class _Popen(forking.Popen):
                 else:
                     os.putenv('_MEIPASS2', '')
 
+
 class Process(multiprocessing.Process):
     _Popen = _Popen
+
 
 if __name__ == '__main__':
     # On Windows calling this function is necessary.
@@ -59,7 +62,8 @@ def find_and_make_move(board, maximizing=True, allow_book=True):
     profiler = cProfile.Profile()
     profiler.enable()
 
-    eval = find_move(board, utils.load_constants()["max_depth"], utils.load_constants()["time_limit"], allow_book=allow_book,
+    eval = find_move(board, utils.load_constants()["max_depth"], utils.load_constants()["time_limit"],
+                     allow_book=allow_book,
                      engine_is_maximizing=maximizing)
 
     profiler.disable()
@@ -94,16 +98,17 @@ def end_game(board):
     print(utils.generate_pgn(board))
     print(board.fen())
 
+
 if __name__ == '__main__':
     while True:
         if white:
             try:
                 # Start pondering
-                p = Process(target=find_move, args=(board, 69, # depth is an arbitarily large number, for pondering
-                                                       # purposes
-                                                             utils.load_constants()["time_limit"]),
-                                     kwargs={"allow_book": False, "engine_is_maximizing": white,
-                                             "print_updates": False})
+                p = Process(target=find_move, args=(board, 69,  # depth is an arbitarily large number, for pondering
+                                                    # purposes
+                                                    utils.load_constants()["time_limit"]),
+                            kwargs={"allow_book": False, "engine_is_maximizing": white,
+                                    "print_updates": False})
                 p.start()
                 san_move = input("Move: ")
 
@@ -143,9 +148,9 @@ if __name__ == '__main__':
             while True:
                 try:
                     p = Process(target=find_move, args=(board, 69,
-                                                           utils.load_constants()["time_limit"]),
-                                   kwargs={"allow_book": False, "engine_is_maximizing": white,
-                                           "print_updates": False})
+                                                        utils.load_constants()["time_limit"]),
+                                kwargs={"allow_book": False, "engine_is_maximizing": white,
+                                        "print_updates": False})
                     p.start()
 
                     san_move = input("Move: ")
@@ -155,8 +160,6 @@ if __name__ == '__main__':
 
                 except KeyboardInterrupt:
                     print(utils.generate_pgn(board))
-
-                    print("Ctrl+C again when ready to close the program.")
                     break
 
                 try:
@@ -169,4 +172,3 @@ if __name__ == '__main__':
 
             print_board(board, white)
             print()
-
