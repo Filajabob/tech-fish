@@ -291,7 +291,9 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
 
     best_move = None
 
-    print("Searching...")
+    if print_updates:
+        print("Searching...")
+
 
     try:
         # Iterative Deepening
