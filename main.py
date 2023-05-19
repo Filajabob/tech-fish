@@ -1,15 +1,15 @@
 import time
 import chess
 import utils
-from minimax import evaluate_position, find_move
-from multiprocessing import Pool
+from minimax import find_move
 import cProfile
+import multiprocessing as mp
 
-board = chess.Board(fen=utils.load_constants()["starting_fen"])
-# TODO: FIX DISPLAY ISSUES: display_board = display.start()
+if __name__ == '__main__':
+    board = chess.Board(fen=utils.load_constants()["starting_fen"])
 
-white = input("Color (W/b) ") == "W"
-inverse = input("Inverse board? (Y/n) ") == "Y"
+    white = input("Color (W/b) ") == "W"
+    inverse = input("Inverse board? (Y/n) ") == "Y"
 
 
 def print_board(board, is_white):
@@ -41,10 +41,10 @@ def find_and_make_move(board, maximizing=True, allow_book=True):
     print()
     print("Move:", utils.generate_san_move_list(board)[-1])
 
-    if isinstance(eval["eval"], int):
-        print("Eval:", round(eval["eval"], 2))
+    if isinstance(eval["eval"], float):
+        print("Eval:", round(eval["eval"], 1))
     else:
-        print("Eval", str(eval["eval"]))
+        print("Eval:", str(eval["eval"]))
 
     print("Depth:", eval["depth"])
     print("Time Spent:", time_spent)
@@ -66,7 +66,20 @@ def end_game(board):
 while True:
     if white:
         try:
+            if __name__ == '__main__':
+                # Start pondering
+                p = mp.Process(target=find_move, args=(board, 69, # depth is an arbitarily large number, for pondering
+                                                   # purposes
+                                                         utils.load_constants()["time_limit"]),
+                                 kwargs={"allow_book": False, "engine_is_maximizing": white,
+                                         "print_updates": False})
+                p.start()
             san_move = input("Move: ")
+
+            if __name__ == '__main__':
+                p.terminate()
+                p.join()
+
         except KeyboardInterrupt:
             print(utils.generate_pgn(board))
             print(board.fen())
@@ -75,14 +88,8 @@ while True:
         try:
             board.push_san(san_move)
 
-        except chess.IllegalMoveError:
-            print("Illegal move!")
-            continue
-        except chess.InvalidMoveError:
-            print("Illegal move!")
-            continue
-        except chess.AmbiguousMoveError:
-            print("Ambiguous move!")
+        except Exception as e:
+            print(e)
             continue
 
         print_board(board, white)
@@ -108,7 +115,19 @@ while True:
 
         while True:
             try:
+                if __name__ == '__main__':
+                    # Start pondering
+                    p = mp.Process(target=find_move, args=(board, 69,
+                                                       utils.load_constants()["time_limit"]),
+                               kwargs={"allow_book": False, "engine_is_maximizing": white,
+                                       "print_updates": False})
+                    p.start()
+
                 san_move = input("Move: ")
+
+                if __name__ == '__main__':
+                    p.terminate()
+                    p.join()
             except KeyboardInterrupt:
                 print(utils.generate_pgn(board))
                 break
@@ -117,14 +136,8 @@ while True:
                 board.push_san(san_move)
                 break
 
-            except chess.IllegalMoveError:
-                print("Illegal move!")
-                continue
-            except chess.InvalidMoveError:
-                print("Illegal move!")
-                continue
-            except chess.AmbiguousMoveError:
-                print("Ambiguous move!")
+            except Exception as e:
+                print(e)
                 continue
 
         print_board(board, white)

@@ -53,6 +53,14 @@ class ZobristHash:
         self.zobrist_array[-1] = random.getrandbits(64)
 
     def move(self, move, board):
+        if not move:
+            # Null move, switch turn
+            if not board.turn:
+                # Update the hash to include who's turn it is
+                self.current_hash ^= self.zobrist_array["-1"]
+
+            return self.current_hash
+
         # Call Zobrist Hashing before the actual push
         piece = board.piece_type_at(move.from_square)
 
