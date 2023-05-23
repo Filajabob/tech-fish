@@ -1,3 +1,3 @@
-chess==1.9.0
-psutil==5.9.0
-requests==2.27.1
+chess==1.9.0  # All chess moving, legal move generation, board representation, etc.
+psutil==5.9.0  # For performance tests and debugging. Not required if you will not use load_profile.py.
+requests==2.27.1  # For tablebase lookup. As this engine doesn't have a good endgame system, this is recommended.
