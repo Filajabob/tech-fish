@@ -16,7 +16,7 @@ def quiescence_search(board, alpha, beta, depth=constants["quiescent_depth"]):
     if alpha < stand_pat:
         alpha = stand_pat
 
-    for capture in [move for move in board.legal_moves if board.is_capture(move)]:
+    for capture in [move for move in board.legal_moves if board.is_capture(move) and utils.see_capture(move, board) > 0]:
         # Delta pruning
         BIG_DELTA = constants["piece_values"]["6"]
 

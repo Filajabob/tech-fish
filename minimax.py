@@ -58,7 +58,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
                 return entry
 
     # If we reached the bottom of the tree, or if position is quiet, start quiescent search
-    if depth == 0 or utils.is_quiescent(board):
+    if depth == 0 or utils.is_quiescent(board) or board.is_game_over():
         score = quiescence_search(board, alpha, beta)
 
         if score <= initial_alpha:

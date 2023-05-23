@@ -32,8 +32,6 @@ def see(board, square):
 
 
 def see_capture(move, board):
-    value = 0
-
     captured_piece = board.piece_at(move.to_square)
 
     if captured_piece is None:
