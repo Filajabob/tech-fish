@@ -55,7 +55,7 @@ class ZobristHash:
         if board.is_capture(move):
             if board.is_en_passant(move):
                 # XOR the en passant
-                self.current_hash ^= self.zobrist_array["en_passant"][self.en_passant_squares.index(move.to_square)]
+                self.current_hash ^= self.en_passant[self.en_passant_squares.index(move.to_square)]
 
             else:
                 captured_piece = board.piece_type_at(move.to_square)

@@ -112,6 +112,8 @@ if __name__ == '__main__':
                                     "print_updates": False})
                 p.start()
                 san_move = input("Move: ")
+                p.terminate()
+                p.join()
 
             except KeyboardInterrupt:
                 print(utils.generate_pgn(board))
