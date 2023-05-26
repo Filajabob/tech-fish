@@ -50,21 +50,28 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         if entry["depth"] >= depth:
             if entry["type"] == 'exact':
                 return entry
-            elif entry["type"] == 'lowerbound' and entry["score"] >= beta:
+            elif entry["type"] == "upperbound" and entry["score"] <= alpha:
                 return entry
-            elif entry["type"] == 'upperbound' and entry["score"] <= alpha:
+            elif entry["type"] == "lowerbound" and entry["score"] >= beta:
                 return entry
-            if alpha >= beta:
-                return entry
+
+        # Node needs to be examined, we can make it more efficient
+        if not first_move:
+            first_move = entry["best_move"]
 
     # If we reached the bottom of the tree, or if position is quiet, start quiescent search
-    if depth == 0 or utils.is_quiescent(board) or board.is_game_over():
-        score = quiescence_search(board, alpha, beta)
+    if depth == 0 or board.is_game_over():
+        if not utils.is_quiescent(board):
+            score = quiescence_search(board, alpha, beta)
+        else:
+            score = evaluate_position(board)
 
-        if score <= initial_alpha:
-            type = "lowerbound"
-        elif score >= initial_beta:
+        if alpha < score < beta:
+            type = "exact"
+        elif score <= alpha:
             type = "upperbound"
+        elif score >= beta:
+            type = "lowerbound"
         else:
             type = None
 
@@ -72,17 +79,13 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             "score": score,
             "best_move": None,
             "depth": depth,
-            "type": type,
-            'alpha': alpha,
-            'beta': beta
+            "type": type
         })
 
         return {
             "score": evaluate_position(board),
-            "best_move": None,
-            "depth": depth,
-            'alpha': alpha,
-            'beta': beta
+            "best_move": chess.Move.null(),
+            "depth": depth
         }
 
     # Futility pruning
@@ -96,9 +99,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             return {
                 "score": alpha,
                 "best_move": None,
-                "depth": depth,
-                'alpha': alpha,
-                'beta': beta
+                "depth": depth
             }
         else:
             moves = board.legal_moves
@@ -112,9 +113,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             return {
                 "score": alpha,
                 "best_move": None,
-                "depth": depth,
-                'alpha': alpha,
-                'beta': beta
+                "depth": depth
             }
         else:
             moves = board.legal_moves
@@ -153,13 +152,16 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             if score > alpha:
                 killer_moves[board.turn][depth].append(move)
 
+            # fail high (beta cutoff)
             if alpha >= beta:
                 break
 
-        if max_score <= initial_alpha:
-            type = "lowerbound"
-        elif max_score >= initial_beta:
+        if alpha < max_score < beta:
+            type = "exact"
+        elif max_score <= alpha:
             type = "upperbound"
+        elif max_score >= beta:
+            type = "lowerbound"
         else:
             type = None
 
@@ -167,9 +169,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             'score': max_score,
             'best_move': best_move,
             'depth': depth,
-            "type": type,
-            'alpha': alpha,
-            'beta': beta
+            "type": type
         })
 
         utils.kill_helpers(abort_flag)
@@ -177,9 +177,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         return {
             'score': max_score,
             'best_move': best_move,
-            'depth': depth,
-            'alpha': alpha,
-            'beta': beta
+            'depth': depth
         }
 
     else:
@@ -211,13 +209,16 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             if score < beta:
                 killer_moves[board.turn][depth].append(move)
 
-            if beta <= alpha:
+            # fail high (beta cutoff)
+            if alpha >= beta:
                 break
 
-        if min_score <= initial_alpha:
-            type = "lowerbound"
-        elif min_score >= initial_beta:
+        if alpha < min_score < beta:
+            type = "exact"
+        elif min_score <= alpha:
             type = "upperbound"
+        elif min_score >= beta:
+            type = "lowerbound"
         else:
             type = None
 
@@ -225,9 +226,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             'score': min_score,
             'best_move': best_move,
             'depth': depth,
-            "type": type,
-            'alpha': alpha,
-            'beta': beta
+            "type": type
         })
 
         utils.kill_helpers(abort_flag)
@@ -235,9 +234,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         return {
             'score': min_score,
             'best_move': best_move,
-            'depth': depth,
-            'alpha': alpha,
-            'beta': beta
+            'depth': depth
         }
 
 
@@ -294,7 +291,6 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
     if print_updates:
         print("Searching...")
 
-
     try:
         # Iterative Deepening
         for depth in range(1, max_depth + 1):
@@ -304,20 +300,9 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
                 else:
                     print(f"\rDepth: {depth}", end='')
 
-            alpha, beta = -float('inf'), float('inf')
             start_time = time.time()
-            search = minimax(board, depth, alpha, beta, engine_is_maximizing)
+            search = minimax(board, depth, float('-inf'), float('inf'), engine_is_maximizing)
             best_move = search["best_move"]
-
-            # Save the full search to the transposition table
-            transposition_table.add_entry(zobrist_hash.current_hash, {
-                'score': search["score"],
-                'best_move': search["best_move"],
-                'depth': depth,
-                "type": "exact",
-                'alpha': alpha,
-                'beta': beta
-            })
 
             # Abort when time limit is exceeded
             if time.time() - start_time >= constants["time_limit"] and best_move is not None:

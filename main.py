@@ -1,3 +1,4 @@
+import copy
 import time
 import chess
 import utils
@@ -104,7 +105,7 @@ if __name__ == '__main__':
         if white:
             try:
                 # Start pondering
-                p = Process(target=find_move, args=(board, 69,  # depth is an arbitarily large number, for pondering
+                p = Process(target=find_move, args=(copy.deepcopy(board), 69,  # depth is an arbitarily large number, for pondering
                                                     # purposes
                                                     utils.load_constants()["time_limit"]),
                             kwargs={"allow_book": False, "engine_is_maximizing": white,
@@ -147,7 +148,7 @@ if __name__ == '__main__':
 
             while True:
                 try:
-                    p = Process(target=find_move, args=(board, 69,
+                    p = Process(target=find_move, args=(copy.deepcopy(board), 69,
                                                         utils.load_constants()["time_limit"]),
                                 kwargs={"allow_book": False, "engine_is_maximizing": white,
                                         "print_updates": False})
