@@ -39,9 +39,6 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
     :return:
     """
 
-    initial_alpha = alpha
-    initial_beta = beta
-
     hash_key = hash.current_hash
 
     # Check if there is an entry in the transposition table for this hash
