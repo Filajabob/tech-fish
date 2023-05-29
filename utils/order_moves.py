@@ -58,6 +58,6 @@ def order_moves(board, moves, transposition_table, hash, depth, killer_moves, be
         scored_moves.insert(0, best_move)  # Insert the best move at the beginning
 
     # Ensure there is no overlap between killer moves and regular moves
-    scored_moves = [move for move in scored_moves if move not in killer_moves]
+    scored_moves = [move for move in scored_moves if move not in killer_moves and move in board.legal_moves]
 
     return scored_moves

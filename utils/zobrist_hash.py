@@ -33,7 +33,7 @@ class ZobristHash:
             self.current_hash ^= self.zobrist_array[piece.piece_type][square]
 
         if board.ep_square is not None:
-            self.current_hash ^= self.zobrist_array["en_passant"][chess.square_file(board.ep_square)]
+            self.current_hash ^= self.en_passant[chess.square_file(board.ep_square)]
 
         self.zobrist_array[-1] = random.getrandbits(64)
 
@@ -50,7 +50,12 @@ class ZobristHash:
         piece = board.piece_type_at(move.from_square)
 
         # XOR out the piece from its origin square
-        self.current_hash ^= self.zobrist_array[piece][move.from_square]
+        try:
+            self.current_hash ^= self.zobrist_array[piece][move.from_square]
+        except Exception as e:
+            print(board)
+            print(move)
+            raise e
 
         if board.is_capture(move):
             if board.is_en_passant(move):

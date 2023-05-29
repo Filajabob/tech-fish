@@ -298,7 +298,8 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
                     print(f"\rDepth: {depth}", end='')
 
             start_time = time.time()
-            search = minimax(board, depth, float('-inf'), float('inf'), engine_is_maximizing)
+            search = minimax(board, depth, float('-inf'), float('inf'), engine_is_maximizing,
+                             hash=utils.ZobristHash(board))
             best_move = search["best_move"]
 
             # Abort when time limit is exceeded

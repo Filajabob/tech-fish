@@ -7,16 +7,10 @@ constants = utils.load_constants()
 def evaluate_position(board):
     """Evaluates the current material of a singular position."""
     # If the game has ended, figure out who is winning
-    outcome = board.outcome()
-    if outcome:
-        if outcome.result() in ["1-0", "0-1", "1/2-1/2"]:
-            if outcome.result() == "1-0":
-                return float("inf")
-            elif outcome.result() == "0-1":
-                return float("-inf")
-            elif outcome.result() == "1/2-1/2":
-                return 0
-
+    if board.is_checkmate():
+        return float('inf' if board.turn else '-inf')
+    elif board.is_stalemate() or board.is_insufficient_material() or board.is_seventyfive_moves() or board.is_fivefold_repetition():
+        return 0
     else:
         # Evaluate material (positive is good for white, negative good for black)
         material_balance = utils.material_balance(board)
