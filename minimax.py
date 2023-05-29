@@ -236,7 +236,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
 
 
 def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximizing=False, performance_test=True,
-              update_hash=True, print_updates=True):
+              update_hash=True, print_updates=True, score_only=False):
     clean_board = board
     board = copy.deepcopy(board)
 
@@ -291,16 +291,18 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
     try:
         # Iterative Deepening
         for depth in range(1, max_depth + 1):
-            if print_updates:
-                if best_move:
-                    print(f"\rDepth: {depth} | Move: {board.san(best_move)}", end='')
-                else:
-                    print(f"\rDepth: {depth}", end='')
-
             start_time = time.time()
             search = minimax(board, depth, float('-inf'), float('inf'), engine_is_maximizing,
                              hash=utils.ZobristHash(board))
             best_move = search["best_move"]
+
+            if print_updates:
+                if best_move:
+                    print(f"\rDepth: {depth} | Move: {board.san(best_move)} | Score: {round(search['score'], 1)}", end='')
+                else:
+                    print(f"\rDepth: {depth}", end='')
+            if score_only:
+                print(f"\rDepth: {depth} | Score: {search['score']}", end='')
 
             # Abort when time limit is exceeded
             if time.time() - start_time >= constants["time_limit"] and best_move is not None:

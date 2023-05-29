@@ -105,11 +105,9 @@ if __name__ == '__main__':
         if white:
             try:
                 # Start pondering
-                p = Process(target=find_move, args=(copy.deepcopy(board), 69,  # depth is an arbitarily large number, for pondering
-                                                    # purposes
-                                                    utils.load_constants()["time_limit"]),
+                p = Process(target=find_move, args=(copy.deepcopy(board), 64, 32000),
                             kwargs={"allow_book": False, "engine_is_maximizing": white,
-                                    "print_updates": False})
+                                    "print_updates": False, "score_only": True})
                 p.start()
                 san_move = input("Move: ")
                 p.terminate()
@@ -150,10 +148,10 @@ if __name__ == '__main__':
 
             while True:
                 try:
-                    p = Process(target=find_move, args=(copy.deepcopy(board), 69,
-                                                        utils.load_constants()["time_limit"]),
+                    p = Process(target=find_move, args=(copy.deepcopy(board), 64,
+                                                        32000),
                                 kwargs={"allow_book": False, "engine_is_maximizing": white,
-                                        "print_updates": False})
+                                        "print_updates": False, "score_only": True})
                     p.start()
 
                     san_move = input("Move: ")
