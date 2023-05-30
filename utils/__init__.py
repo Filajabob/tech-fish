@@ -12,3 +12,4 @@ from .get_piece_value import get_piece_value
 from .is_quiescent import is_quiescent
 from .is_generator_empty import is_generator_empty
 from .see import see_capture, see
+from .node_type import node_type

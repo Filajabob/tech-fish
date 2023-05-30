@@ -39,6 +39,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
     :return:
     """
 
+    initial_alpha = alpha
+    initial_beta = beta
+
     hash_key = hash.current_hash
 
     # Check if there is an entry in the transposition table for this hash
@@ -63,14 +66,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         else:
             score = evaluate_position(board)
 
-        if alpha < score < beta:
-            type = "exact"
-        elif score <= alpha:
-            type = "upperbound"
-        elif score >= beta:
-            type = "lowerbound"
-        else:
-            type = None
+        type = utils.node_type(score, initial_alpha, initial_beta)
 
         transposition_table.add_entry(hash_key, {
             "score": score,
@@ -140,30 +136,19 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
 
             score = search["score"]
 
-            if score > max_score:
-                max_score = score
-                best_move = move
-
-            alpha = max(alpha, max_score)
+            if score >= beta:
+                alpha = beta  # return beta
+                break  # fail hard beta cutoff, return beta
 
             if score > alpha:
+                alpha = score
                 killer_moves[board.turn][depth].append(move)
+                best_move = move
 
-            # fail high (beta cutoff)
-            if alpha >= beta:
-                break
-
-        if alpha < max_score < beta:
-            type = "exact"
-        elif max_score <= alpha:
-            type = "upperbound"
-        elif max_score >= beta:
-            type = "lowerbound"
-        else:
-            type = None
+        type = utils.node_type(alpha, initial_alpha, initial_beta)
 
         transposition_table.add_entry(hash_key, {
-            'score': max_score,
+            'score': alpha,
             'best_move': best_move,
             'depth': depth,
             "type": type
@@ -172,7 +157,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         utils.kill_helpers(abort_flag)
 
         return {
-            'score': max_score,
+            'score': alpha,
             'best_move': best_move,
             'depth': depth
         }
@@ -197,30 +182,19 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
 
             score = search["score"]
 
-            if score < min_score:
-                min_score = score
-                best_move = move
-
-            beta = min(beta, min_score)
-
-            if score < beta:
-                killer_moves[board.turn][depth].append(move)
-
-            # fail high (beta cutoff)
-            if alpha >= beta:
+            if score <= alpha:
+                beta = alpha  # fail hard alpha cutoff
                 break
 
-        if alpha < min_score < beta:
-            type = "exact"
-        elif min_score <= alpha:
-            type = "upperbound"
-        elif min_score >= beta:
-            type = "lowerbound"
-        else:
-            type = None
+            if score < beta:
+                beta = score
+                best_move = move
+                killer_moves[board.turn][depth].append(move)
+
+        type = utils.node_type(beta, initial_alpha, initial_beta)
 
         transposition_table.add_entry(hash_key, {
-            'score': min_score,
+            'score': beta,
             'best_move': best_move,
             'depth': depth,
             "type": type
@@ -229,7 +203,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         utils.kill_helpers(abort_flag)
 
         return {
-            'score': min_score,
+            'score': beta,
             'best_move': best_move,
             'depth': depth
         }
