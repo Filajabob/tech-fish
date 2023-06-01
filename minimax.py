@@ -122,7 +122,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         best_move = None  # The best move
 
         for i, move in enumerate(ordered_moves):
-            ext = utils.extension(board, move, root)
+            ext = utils.extension(board, move, root, utils.node_type(max_score, initial_alpha, initial_beta))
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
@@ -173,7 +173,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         best_move = None
 
         for i, move in enumerate(ordered_moves):
-            ext = utils.extension(board, move, root)
+            ext = utils.extension(board, move, root, utils.node_type(min_score, initial_alpha, initial_beta))
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 

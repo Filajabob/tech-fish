@@ -6,7 +6,7 @@ def extension(board, move, root, node_type):
         # Check extension
         return 1  # neutral extension
 
-    if board.is_capture(move):
+    if board.is_capture(move) and node_type == "exact":
         board.push(move)
         if utils.material_balance(board) == utils.material_balance(root):
             # Recapture extension
