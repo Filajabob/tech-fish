@@ -107,7 +107,7 @@ if __name__ == '__main__':
                 # Start pondering
                 p = Process(target=find_move, args=(copy.deepcopy(board), 64, 32000),
                             kwargs={"allow_book": False, "engine_is_maximizing": white,
-                                    "print_updates": False, "score_only": True})
+                                    "print_updates": False})
                 p.start()
                 san_move = input("Move: ")
                 p.terminate()

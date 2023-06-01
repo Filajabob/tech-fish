@@ -25,7 +25,7 @@ killer_moves = {
 }
 
 
-def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_move=None, allow_null=True):
+def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_move=None, allow_null=True, root=None):
     """
     A minimax evaluation function, which uses alpha-beta pruning, move ordering, and Zobrist hashing. Also uses Lazy SMP.
     :param allow_null: Allow null pruning?
@@ -38,6 +38,9 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
     :param is_maximizing:
     :return:
     """
+
+    initial_alpha = alpha
+    initial_beta = beta
 
     hash_key = hash.current_hash
 
@@ -63,14 +66,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         else:
             score = evaluate_position(board)
 
-        if alpha < score < beta:
-            type = "exact"
-        elif score <= alpha:
-            type = "upperbound"
-        elif score >= beta:
-            type = "lowerbound"
-        else:
-            type = None
+        type = utils.node_type(score, initial_alpha, initial_beta)
 
         transposition_table.add_entry(hash_key, {
             "score": score,
@@ -126,14 +122,15 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         best_move = None  # The best move
 
         for i, move in enumerate(ordered_moves):
+            ext = utils.extension(board, move, root, utils.node_type(max_score, initial_alpha, initial_beta))
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)  # Try the move
 
             if i > constants["lmr_sample"] - 1 and not board.is_capture(move) and not board.gives_check(move) and \
                     not board.is_check() and depth - 1 - constants["lmr_reduction"] > 0:
-                search = minimax(board, depth - 1 - constants["lmr_reduction"], alpha, beta, not is_maximizing, hash)
+                search = minimax(board, depth + ext - 1 - constants["lmr_reduction"], alpha, beta, not is_maximizing, hash, root=root)
             else:
-                search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash)
+                search = minimax(board, depth + ext - 1, alpha, beta, not is_maximizing, hash, root=root)
 
             board.pop()
             zobrist_hash.pop(move, board)
@@ -153,14 +150,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             if alpha >= beta:
                 break
 
-        if alpha < max_score < beta:
-            type = "exact"
-        elif max_score <= alpha:
-            type = "upperbound"
-        elif max_score >= beta:
-            type = "lowerbound"
-        else:
-            type = None
+        type = utils.node_type(max_score, initial_alpha, initial_beta)
 
         transposition_table.add_entry(hash_key, {
             'score': max_score,
@@ -183,14 +173,15 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
         best_move = None
 
         for i, move in enumerate(ordered_moves):
+            ext = utils.extension(board, move, root, utils.node_type(min_score, initial_alpha, initial_beta))
             hash.move(move, board)  # Make sure the Zobrist Hash calculation happens before the move
             board.push(move)
 
             if i > constants["lmr_sample"] - 1 and not board.is_capture(move) and not board.gives_check(move) and \
                     not board.is_check() and depth - 1 - constants["lmr_reduction"] > 0:
-                search = minimax(board, depth - 1 - constants["lmr_reduction"], alpha, beta, not is_maximizing, hash)
+                search = minimax(board, depth + ext - 1 - constants["lmr_reduction"], alpha, beta, not is_maximizing, hash, root=root)
             else:
-                search = minimax(board, depth - 1, alpha, beta, not is_maximizing, hash)
+                search = minimax(board, depth + ext - 1, alpha, beta, not is_maximizing, hash, root=root)
 
             board.pop()
             zobrist_hash.pop(move, board)
@@ -210,14 +201,7 @@ def minimax(board, depth, alpha, beta, is_maximizing, hash=zobrist_hash, first_m
             if alpha >= beta:
                 break
 
-        if alpha < min_score < beta:
-            type = "exact"
-        elif min_score <= alpha:
-            type = "upperbound"
-        elif min_score >= beta:
-            type = "lowerbound"
-        else:
-            type = None
+        type = utils.node_type(min_score, initial_alpha, initial_beta)
 
         transposition_table.add_entry(hash_key, {
             'score': min_score,
@@ -293,7 +277,7 @@ def find_move(board, max_depth, time_limit, *, allow_book=True, engine_is_maximi
         for depth in range(1, max_depth + 1):
             start_time = time.time()
             search = minimax(board, depth, float('-inf'), float('inf'), engine_is_maximizing,
-                             hash=utils.ZobristHash(board))
+                             hash=utils.ZobristHash(board), root=board)
             best_move = search["best_move"]
 
             if print_updates:
