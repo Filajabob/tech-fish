@@ -1,4 +1,4 @@
-# TechFish v1.0.0
+# TechFish v1.2.0
 
 Feast your eyes on the next horrible chess engine; TechFish!
 
@@ -65,4 +65,5 @@ This engine uses
 - Futility and Extended Futility Pruning
 - Lazy SMP
 - Quiescent Search
+- Extensions (current check and recapture)
 - Maybe more (I forgor)
