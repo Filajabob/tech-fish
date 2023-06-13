@@ -1,4 +1,4 @@
-# TechFish v1.0.0
+# TechFish v1.1.1
 
 Feast your eyes on the next horrible chess engine; TechFish!
 
@@ -66,3 +66,13 @@ This engine uses
 - Lazy SMP
 - Quiescent Search
 - Maybe more (I forgor)
+
+## Example Games
+
+### Spencer (W) vs. TechFish (B)
+![board (5)](https://github.com/Filajabob/tech-fish/assets/98435043/4fe40c4a-eec8-4eb8-aad4-2a64244f7fb8)
+1. e4 e6 2. Nc3 d5 3. exd5 exd5 4. Qe2+ Be6 5. Qf3 Ne7 6. Qg3 Nbc6 7. Nb5 Rc8 8.
+Nf3 Nf5 9. Qg5 Qxg5 10. Nxg5 Bd7 11. Bd3 Nh4 12. g3 Ng6 13. Bxg6 hxg6 14. d3 Bc5
+15. Bf4 O-O 16. Bxc7 Nb4 17. Bd6 Rfd8 18. Kd2 Bxd6 19. Nxd6 Rxc2+ 20. Ke3 Rxb2
+21. Ngxf7 Nc2+ 22. Kf4 g5+ 23. Kxg5 Nxa1 24. Nxd8 Nc2 25. Re1 Nxe1 *
+
