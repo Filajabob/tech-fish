@@ -1,10 +1,12 @@
 import copy
 import time
 import chess
+import chess.pgn
 import utils
 from minimax import find_move
 import cProfile
 import multiprocessing
+import datetime
 
 import multiprocessing.popen_spawn_win32 as forking
 import os
@@ -99,6 +101,8 @@ def end_game(board):
     print(utils.generate_pgn(board))
     print(board.fen())
 
+    utils.save_game(board)
+
 
 if __name__ == '__main__':
     while True:
@@ -116,6 +120,7 @@ if __name__ == '__main__':
             except KeyboardInterrupt:
                 print(utils.generate_pgn(board))
                 print(board.fen())
+                utils.save_game(board)
                 break
 
             try:
@@ -161,6 +166,8 @@ if __name__ == '__main__':
 
                 except KeyboardInterrupt:
                     print(utils.generate_pgn(board))
+                    print(board.fen())
+                    utils.save_game(board)
                     break
 
                 try:
