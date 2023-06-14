@@ -9,19 +9,17 @@ def extension(board, move, root, node_type):
     if board.gives_check(move):
         return 1  # neutral extension
 
-    if board.is_check():
-        return 1
-
     # RECAPTURE EXTENSION
 
     if board.is_capture(move) and node_type == "exact":
-        board.push(move)
-        if utils.material_balance(board) == utils.material_balance(root):
-            # Recapture extension
-            board.pop()
-            return 1
-        else:
-            board.pop()
+        if utils.see_capture(move, board) >= 0:
+            board.push(move)
+            if utils.material_balance(board) == utils.material_balance(root):
+                # Recapture extension
+                board.pop()
+                return 1
+            else:
+                board.pop()
 
     # PASSED PAWN EXTENSIONS
 

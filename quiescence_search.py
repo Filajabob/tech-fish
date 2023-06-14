@@ -8,6 +8,8 @@ def is_eligible_quiescence_move(move, board):
     if board.is_capture(move):
         if utils.see_capture(move, board) > 0:
             return True
+    elif board.gives_check(move):
+        return True
 
     return False
 

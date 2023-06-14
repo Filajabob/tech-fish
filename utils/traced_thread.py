@@ -1,6 +1,3 @@
-# Python program using
-# traces to kill threads
-
 import sys
 import trace
 import threading
@@ -12,13 +9,9 @@ class TracedThread(threading.Thread):
         threading.Thread.__init__(self, *args, **keywords)
         self.killed = False
 
-    def run(self):
-        if self._target is not None:
-            self._return = self._target(*self._args,
-                                        **self._kwargs)
-
     def start(self):
         self.__run_backup = self.run
+        self.run = self.__run
         threading.Thread.start(self)
 
     def __run(self):
@@ -41,6 +34,7 @@ class TracedThread(threading.Thread):
     def kill(self):
         self.killed = True
 
-    def join(self, *args):
-        threading.Thread.join(self, *args)
-        return self._return
+
+def func():
+    while True:
+        print('thread running')

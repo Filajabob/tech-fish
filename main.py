@@ -6,7 +6,7 @@ import utils
 from minimax import find_move
 import cProfile
 import multiprocessing
-import datetime
+from threading import Thread
 
 import multiprocessing.popen_spawn_win32 as forking
 import os
@@ -109,12 +109,12 @@ if __name__ == '__main__':
         if white:
             try:
                 # Start pondering
-                p = Process(target=find_move, args=(copy.deepcopy(board), 64, 32000),
+                p = utils.TracedThread(target=find_move, args=(copy.deepcopy(board), 64, 32000),
                             kwargs={"allow_book": False, "engine_is_maximizing": white,
                                     "print_updates": False})
                 p.start()
                 san_move = input("Move: ")
-                p.terminate()
+                p.kill()
                 p.join()
 
             except KeyboardInterrupt:
@@ -153,7 +153,7 @@ if __name__ == '__main__':
 
             while True:
                 try:
-                    p = Process(target=find_move, args=(copy.deepcopy(board), 64,
+                    p = utils.TracedThread(target=find_move, args=(copy.deepcopy(board), 64,
                                                         32000),
                                 kwargs={"allow_book": False, "engine_is_maximizing": white,
                                         "print_updates": False, "score_only": True})
@@ -161,7 +161,7 @@ if __name__ == '__main__':
 
                     san_move = input("Move: ")
 
-                    p.terminate()
+                    p.kill()
                     p.join()
 
                 except KeyboardInterrupt:

@@ -6,7 +6,6 @@ from .evaluate_endgame import evaluate_endgame
 from .zobrist_hash import ZobristHash
 from .order_moves import order_moves
 from .timeout import timeout
-from .traced_thread import TracedThread
 from .helpers import start_helpers, kill_helpers
 from .get_piece_value import get_piece_value
 from .is_quiescent import is_quiescent
@@ -15,3 +14,4 @@ from .see import see_capture, see
 from .extension import extension
 from .node_type import node_type
 from .save_game import save_game
+from .traced_thread import TracedThread
