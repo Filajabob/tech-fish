@@ -9,6 +9,9 @@ def extension(board, move, root, node_type):
     if board.gives_check(move):
         return 1  # neutral extension
 
+    if board.is_check():
+        return 1
+
     # RECAPTURE EXTENSION
 
     if board.is_capture(move) and node_type == "exact":
